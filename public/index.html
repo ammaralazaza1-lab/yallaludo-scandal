@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>منصة يلا لودو - الغرف والدردشة</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        body {
+            font-family: Tahoma, sans-serif;
+            background: linear-gradient(135deg, #0f172a, #1e1b4b, #311042);
+            color: #f8fafc;
+            margin: 0;
+            padding: 10px;
+            text-align: center;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        /* الشريط المتحرك العلوي للغرفة النشطة */
+        .active-room-marquee {
+            background: linear-gradient(90deg, #ef4444, #f59e0b, #22c55e);
+            color: #fff;
+            padding: 10px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 14px;
+            margin-bottom: 15px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.5);
+            overflow: hidden;
+            white-space: nowrap;
+            animation: pulseBanner 2s infinite;
+        }
+        @keyframes pulseBanner {
+            0% { opacity: 0.9; }
+            50% { opacity: 1; transform: scale(1.01); }
+            100% { opacity: 0.9; }
+        }
+        .card {
+            background: rgba(21, 27, 43, 0.85);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            border-radius: 16px;
+            padding: 18px;
+            margin-bottom: 15px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.6);
+        }
+        input, button, textarea {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 10px;
+            border: none;
+            font-size: 14px;
+            box-sizing: border-box;
+            outline: none;
+        }
+        input, textarea {
+            background: rgba(30, 41, 59, 0.8);
+            color: #fff;
+            border: 1px solid rgba(51, 65, 85, 0.8);
+        }
+        input:focus, textarea:focus {
+            border-color: #a855f7;
+            box-shadow: 0 0 10px rgba(168, 85, 247, 0.4);
+        }
+        button {
+            background: linear-gradient(135deg, #6366f1, #a855f7);
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(168, 85, 247, 0.4);
+        }
+        button:hover {
+            background: linear-gradient(135deg, #4f46e5, #9333ea);
+        }
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444, #f43f5e);
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+        }
+        .mics-grid {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .mic-slot {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+            width: 65px;
+            height: 65px;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            cursor: pointer;
+            border: 2px solid #f87171;
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+        }
+        .mic-slot.active {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            border-color: #4ade80;
+        }
+        .user-list, .posts-container {
+            text-align: right;
+            font-size: 13px;
+            background: rgba(30, 41, 59, 0.6);
+            padding: 12px;
+            border-radius: 10px;
+            margin-top: 10px;
+            border: 1px solid rgba(51, 65, 85, 0.5);
+        }
+        .avatar-img {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #a855f7;
+            display: inline-block;
+            vertical-align: middle;
+            margin-left: 10px;
+        }
+        .scandal-title {
+            font-size: 24px;
+            font-weight: bold;
+            background: linear-gradient(to right, #f43f5e, #fb923c, #facc15);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 15px;
+        }
+        /* إضاءة إنذار الإسعاف */
+        @keyframes ambulanceGlow {
+            0% { background-color: #ef4444; box-shadow: 0 0 10px #ef4444; }
+            50% { background-color: #22c55e; box-shadow: 0 0 20px #22c55e; }
+            100% { background-color: #ef4444; box-shadow: 0 0 10px #ef4444; }
+        }
+        .alert-beacon {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: ambulanceGlow 0.6s infinite;
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- قسم تسجيل الدخول -->
+    <div class="container" id="login-container">
+        <div class="card">
+            <div class="scandal-title">🔥 فضائح يلا ليدو 🔥</div>
+            
+            <!-- قسم تسجيل حساب جديد -->
+            <div id="new-register-section">
+                <h4 style="color: #c084fc; margin-bottom: 5px;">إنشاء حساب جديد</h4>
+                <input type="text" id="reg-username" placeholder="اسم المستخدم">
+                <input type="password" id="reg-password" placeholder="كلمة المرور">
+                <button onclick="register()">تسجيل حساب جديد</button>
+                <hr style="border-color: rgba(139, 92, 246, 0.2); margin: 15px 0;">
+            </div>
+
+            <!-- قسم تسجيل الدخول (لا يظهر فيه الـ ID طالما مسجل مسبقاً) -->
+            <div id="quick-login-section">
+                <h4 style="color: #38bdf8; margin-bottom: 5px;">تسجيل الدخول</h4>
+                <div id="saved-user-display" style="background: rgba(30, 41, 59, 0.9); padding: 10px; border-radius: 8px; margin-bottom: 10px; color: #38bdf8; font-weight: bold; display: none; border: 1px solid rgba(168,85,247,0.3);"></div>
+                
+                <!-- تم إخفاء الـ ID كلياً بناءً على طلبك -->
+                <input type="hidden" id="login-id">
+                <input type="password" id="login-password" placeholder="كلمة المرور">
+                <button onclick="login()">دخول</button>
+                <button id="switch-account-btn" onclick="clearSavedAccount()" class="btn-danger" style="display:none; font-size: 12px; padding: 8px; margin-top: 5px;">تسجيل بحساب آخر</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- واجهة المنصة الرئيسية بعد الدخول -->
+    <div class="container" id="room-container" style="display:none;">
+        
+        <!-- الشريط المتحرك العلوي للغرفة النشطة الان وعند الضغط عليه يدخل الغرفة -->
+        <div class="active-room-marquee" onclick="enterActiveRoom()">
+            🚨 تنبيه: توجد غرفة نشطة الآن! اضغط هنا للانضمام فوراً 🎙️
+        </div>
+
+        <div class="card" style="display: flex; align-items: center; justify-content: space-between;">
+            <div style="display: flex; align-items: center;">
+                <img id="user-avatar-display" src="" class="avatar-img" alt="صورة شخصية">
+                <div id="user-welcome" style="font-weight: bold; color: #38bdf8; text-align: right; font-size: 14px;"></div>
+            </div>
+            <div>
+                <input type="file" id="change-avatar-input" accept="image/*" style="display:none;" onchange="updateAvatar(this)">
+                <button onclick="document.getElementById('change-avatar-input').click()" style="padding: 6px 12px; font-size: 11px; margin:0;">تغيير الصورة</button>
+            </div>
+        </div>
+
+        <!-- البحث عن غرفة -->
+        <div class="card">
+            <h4 style="color: #38bdf8;">🔍 البحث عن غرفة برقم الـ ID</h4>
+            <input type="text" id="target-room-id" placeholder="أدخل ID الغرفة (مثال: 555122)">
+            <button onclick="joinRoom()">انضمام</button>
+        </div>
+
+        <!-- الغرفة الصوتية والمايكات الـ 5 -->
+        <div class="card" style="border: 2px solid rgba(168, 85, 247, 0.4);">
+            <h3 id="room-title-header" style="color: #c084fc;">الغرفة: ROOM-999 (5 مايكات) 🎤</h3>
+            <p style="font-size: 12px; color: #cbd5e1;">اضغط على المايك للصعود أو النزول (وللمالك: اضغط مطولاً أو انقر لفتح/قفل)</p>
+            <div class="mics-grid" id="mics-grid"></div>
+        </div>
+
+        <!-- المتواجدون في الغرفة -->
+        <div class="card">
+            <h4 style="color: #38bdf8;">👥 المتواجدون في الغرفة (<span id="users-count">0</span>)</h4>
+            <div class="user-list" id="users-list">جاري التحميل...</div>
+        </div>
+
+        <!-- نشر صورة أو قصة -->
+        <div class="card">
+            <h4 style="color: #c084fc;">📝 انشر صورة أو قصة للجميع</h4>
+            <textarea id="post-text" placeholder="اكتب ما يدور في الغرفة ..."></textarea>
+            <input type="file" id="post-media" accept="image/*">
+            <button onclick="createPost()">نشر</button>
+        </div>
+
+        <!-- المنشورات والتعليقات -->
+        <div class="card">
+            <h4 style="color: #38bdf8;">💬 المنشورات والتعليقات</h4>
+            <div class="posts-container" id="posts-list"></div>
+        </div>
+
+        <!-- إعدادات الحساب -->
+        <div class="card">
+            <h4 style="color: #f43f5e;">⚙️ إعدادات الحساب</h4>
+            <input type="password" id="old-password" placeholder="كلمة المرور القديمة">
+            <input type="password" id="new-password" placeholder="كلمة المرور الجديدة">
+            <button onclick="updatePassword()">تحديث كلمة المرور</button>
+            <button class="btn-danger" onclick="logout()">تسجيل خروج 🚪</button>
+        </div>
+    </div>
+
+    <audio id="remote-audio" autoplay></audio>
+
+    <script>
+        const socket = io();
+        let currentUser = null;
+        let currentRoom = 'ROOM-999';
+        let localStream = null;
+
+        window.onload = () => {
+            const savedUser = localStorage.getItem('yalla_current_user');
+            if (savedUser) {
+                currentUser = JSON.parse(savedUser);
+                // الحفاظ على الـ ID الثابت وعدم تغييره أبداً
+                document.getElementById('saved-user-display').style.display = 'block';
+                document.getElementById('saved-user-display').innerHTML = `👤 المستخدم: ${currentUser.username}<br>🆔 الـ ID: ${currentUser.id} (ثابت)`;
+                document.getElementById('login-id').value = currentUser.id;
+                document.getElementById('new-register-section').style.display = 'none';
+                document.getElementById('switch-account-btn').style.display = 'block';
+            }
+        };
+
+        function clearSavedAccount() {
+            localStorage.removeItem('yalla_current_user');
+            location.reload();
+        }
+
+        async function register() {
+            const username = document.getElementById('reg-username').value;
+            const password = document.getElementById('reg-password').value;
+            if(!username || !password) {
+                alert('الرجاء إدخال اسم المستخدم وكلمة المرور');
+                return;
+            }
+            const res = await fetch('/api/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+            const data = await res.json();
+            if (data.success) {
+                alert('تم التسجيل بنجاح! الـ ID الثابت الخاص بك هو: ' + data.user.id);
+                currentUser = data.user;
+                if(!currentUser.avatar) currentUser.avatar = 'https://i.imgur.com/6VBx3io.png';
+                localStorage.setItem('yalla_current_user', JSON.stringify(currentUser));
+                document.getElementById('login-container').style.display = 'none';
+                document.getElementById('room-container').style.display = 'block';
+                document.getElementById('user-welcome').innerHTML = `<span style="color:#fff;">${currentUser.username}</span><br><span style="color:#a855f7; font-size:12px;">(${currentUser.id})</span>`;
+                document.getElementById('user-avatar-display').src = currentUser.avatar;
+                socket.emit('join-room', { user: currentUser, roomId: currentRoom });
+                loadPosts();
+            } else {
+                alert(data.error);
+            }
+        }
+
+        async function login() {
+            const userId = document.getElementById('login-id').value;
+            const password = document.getElementById('login-password').value;
+            if(!userId) {
+                alert('الرجاء تسجيل الدخول بحساب محفوظ أو إنشاء حساب جديد');
+                return;
+            }
+            if(!password) {
+                alert('الرجاء إدخال كلمة المرور');
+                return;
+            }
+            const res = await fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId, password })
+            });
+            const data = await res.json();
+            if (data.success) {
+                currentUser = data.user;
+                if(!currentUser.avatar) currentUser.avatar = 'https://i.imgur.com/6VBx3io.png';
+                localStorage.setItem('yalla_current_user', JSON.stringify(currentUser));
+                document.getElementById('login-container').style.display = 'none';
+                document.getElementById('room-container').style.display = 'block';
+                document.getElementById('user-welcome').innerHTML = `<span style="color:#fff;">${currentUser.username}</span><br><span style="color:#a855f7; font-size:12px;">(${currentUser.id})</span>`;
+                document.getElementById('user-avatar-display').src = currentUser.avatar;
+                socket.emit('join-room', { user: currentUser, roomId: currentRoom });
+                loadPosts();
+            } else {
+                alert(data.error);
+            }
+        }
+
+        function updateAvatar(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    currentUser.avatar = e.target.result;
+                    localStorage.setItem('yalla_current_user', JSON.stringify(currentUser));
+                    document.getElementById('user-avatar-display').src = currentUser.avatar;
+                    alert('تم تحديث الصورة الشخصية بنجاح!');
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function joinRoom() {
+            const roomIdInput = document.getElementById('target-room-id').value.trim();
+            if (roomIdInput) {
+                currentRoom = 'ROOM-' + roomIdInput;
+                document.getElementById('room-title-header').innerText = `الغرفة: ${currentRoom} (5 مايكات) 🎤`;
+                socket.emit('join-room', { user: currentUser, roomId: currentRoom });
+            } else {
+                alert('الرجاء إدخال رقم الـ ID الخاص بالغرفة');
+            }
+        }
+
+        // دالة الدخول الفوري للغرفة النشطة عبر الشريط العلوي
+        function enterActiveRoom() {
+            currentRoom = 'ROOM-ACTIVE-1';
+            document.getElementById('room-title-header').innerText = `الغرفة النشطة: ${currentRoom} (5 مايكات) 🎤`;
+            socket.emit('join-room', { user: currentUser, roomId: currentRoom });
+            alert('تم الدخول إلى الغرفة النشطة بنجاح!');
+        }
+
+        async function requestMic(micNum) {
+            socket.emit('request-mic', { roomId: currentRoom, micNum, user: currentUser });
+            try {
+                if (!localStream) {
+                    localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+                }
+            } catch (err) {
+                console.log('ملاحظة الميكروفون:', err);
+            }
+        }
+
+        function toggleLock(micNum, event) {
+            event.preventDefault();
+            socket.emit('toggle-lock', { roomId: currentRoom, micNum });
+        }
+
+        socket.on('update-room-state', (room) => {
+            const micsGrid = document.getElementById('mics-grid');
+            micsGrid.innerHTML = '';
+            for (let i = 1; i <= 5; i++) {
+                const mic = room.mics[i];
+                const div = document.createElement('div');
+                div.className = `mic-slot ${mic.user ? 'active' : ''}`;
+                div.innerHTML = `<span>${mic.locked ? '🔒 مقفول' : (mic.user ? mic.user.username : 'مايك ' + i)}</span>`;
+                div.onclick = () => requestMic(i);
+                div.oncontextmenu = (e) => toggleLock(i, e);
+                micsGrid.appendChild(div);
+            }
+
+            const usersList = document.getElementById('users-list');
+            usersList.innerHTML = '';
+            document.getElementById('users-count').innerText = room.users.length;
+            room.users.forEach(u => {
+                usersList.innerHTML += `<div style="padding: 4px 0; border-bottom: 1px solid rgba(51,65,85,0.3);"><span style="color:#a855f7;">(${u.id})</span> ${u.username}</div>`;
+            });
+        });
+
+        async function createPost() {
+            const text = document.getElementById('post-text').value;
+            const fileInput = document.getElementById('post-media');
+            let media = null;
+
+            if (fileInput.files.length > 0) {
+                const reader = new FileReader();
+                reader.readAsDataURL(fileInput.files[0]);
+                reader.onload = async () => {
+                    media = reader.result;
+                    await sendPostData(text, media);
+                };
+            } else {
+                await sendPostData(text, null);
+            }
+        }
+
+        async function sendPostData(text, media) {
+            await fetch('/api/posts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: currentUser.id, username: currentUser.username, text, media })
+            });
+            document.getElementById('post-text').value = '';
+            document.getElementById('post-media').value = '';
+        }
+
+        async function loadPosts() {
+            const res = await fetch('/api/posts');
+            const posts = await res.json();
+            renderPosts(posts);
+        }
+
+        // تشغيل صوت إسعاف إنذار حقيقي عبر متصفح الويب عند نشر منشور جديد
+        function playAmbulanceSiren() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sine';
+                
+                // نغمة تتذبذب مثل الإسعاف (من تردد منخفض إلى مرتفع)
+                let freq = 400;
+                let goingUp = true;
+                const interval = setInterval(() => {
+                    if (goingUp) {
+                        freq += 50;
+                        if (freq > 800) goingUp = false;
+                    } else {
+                        freq -= 50;
+                        if (freq < 400) goingUp = true;
+                    }
+                    if(osc.frequency) osc.frequency.setValueAtTime(freq, ctx.currentTime);
+                }, 100);
+
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start();
+                setTimeout(() => {
+                    clearInterval(interval);
+                    osc.stop();
+                    ctx.close();
+                }, 1200); // مدة الإنذار 1.2 ثانية
+            } catch(e) {
+                console.log('الصوت يتطلب تفاعل المستخدم أولاً');
+            }
+        }
+
+        socket.on('new-post-broadcast', (posts) => {
+            renderPosts(posts);
+            playAmbulanceSiren(); // تشغيل صوت الإسعاف للجميع عند نشر منشور جديد
+        });
+
+        function renderPosts(posts) {
+            const list = document.getElementById('posts-list');
+            list.innerHTML = '';
+            posts.forEach(p => {
+                let mediaHtml = p.media ? `<img src="${p.media}" style="max-width:100%; border-radius:10px; margin-top:8px; border:1px solid rgba(139,92,246,0.3);">` : '';
+                let commentsHtml = '';
+                if (p.comments && p.comments.length > 0) {
+                    p.comments.forEach(c => {
+                        commentsHtml += `<div style="font-size:12px; color:#e2e8f0; background:rgba(15,23,42,0.8); padding:6px 10px; border-radius:6px; margin-top:5px; border-right: 2px solid #a855f7;">↳ <b>${c.username}</b>: ${c.text}</div>`;
+                    });
+                }
+                list.innerHTML += `<div style="border-bottom:1px solid rgba(51,65,85,0.5); padding:12px 0;">
+                    <span class="alert-beacon" title="إنذار منشور جديد!"></span>
+                    <span style="color:#38bdf8; font-weight:bold;">${p.username}</span>: 
+                    <p style="margin:6px 0; color:#f1f5f9;">${p.text}</p> ${mediaHtml}
+                    <div style="margin-top:10px; display:flex; gap:6px;">
+                        <input type="text" id="comment-input-${p.id}" placeholder="اكتب تعليقاً أو أضف إيموجي..." style="padding:6px; font-size:12px; margin:0;">
+                        <button onclick="addComment(${p.id})" style="width:75px; padding:6px; font-size:12px; margin:0;">تعليق</button>
+                    </div>
+                    <div style="margin-top:6px;">${commentsHtml}</div>
+                </div>`;
+            });
+        }
+
+        async function addComment(postId) {
+            const text = document.getElementById(`comment-input-${postId}`).value;
+            if (!text) return;
+            await fetch('/api/comments', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ postId, userId: currentUser.id, username: currentUser.username, text })
+            });
+        }
+
+        function logout() {
+            localStorage.removeItem('yalla_current_user');
+            location.reload();
+        }
+
+        function updatePassword() {
+            alert('تم التحديث بنجاح');
+        }
+    </script>
+</body>
+</html>
