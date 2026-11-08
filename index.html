@@ -3,288 +3,231 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>فضايح السودانين علي يلاليدو</title>
+    <title>فصائح يلا ليدو</title>
     <style>
-        body { font-family: Tahoma, sans-serif; background: #121212; color: #fff; margin: 0; padding: 10px; }
-        .card { background: #1e1e1e; padding: 15px; border-radius: 10px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); border: 1px solid #333; }
-        input, button, textarea { width: 100%; padding: 10px; margin: 5px 0; box-sizing: border-box; border-radius: 5px; border: 1px solid #444; background: #2a2a2a; color: #fff; }
-        button { background: #1877f2; cursor: pointer; font-weight: bold; border: none; }
-        button:hover { background: #145dbf; }
+        body { font-family: Tahoma, sans-serif; background: #12101f; color: #ffffff; margin: 0; padding: 10px; }
+        .card { background: #1a172c; padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #2a254a; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        input, button, textarea { width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: 1px solid #332d5e; background: #221e3d; color: #fff; box-sizing: border-box; }
+        button { background: linear-gradient(135deg, #7c3aed, #4f46e5); cursor: pointer; font-weight: bold; border: none; transition: 0.3s; }
+        button:hover { opacity: 0.9; }
+        .btn-danger { background: linear-gradient(135deg, #ef4444, #dc2626); }
         .hidden { display: none; }
         
-        .room-container { background: #181818; border: 2px solid #d4af37; border-radius: 12px; padding: 15px; text-align: center; }
-        .mics-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; justify-items: center; margin: 15px 0; }
-        .mic-slot { width: 75px; height: 75px; border-radius: 50%; background: #2b2b2b; border: 2px dashed #777; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; cursor: pointer; font-size: 11px; }
-        .mic-slot.active { border: 2px solid #4caf50; background: #1e3a1e; }
-        .mic-slot.locked { border: 2px solid #f44336; background: #3a1e1e; cursor: not-allowed; }
-        .mic-number { position: absolute; top: -5px; right: -5px; background: #d4af37; color: #000; border-radius: 50%; width: 20px; height: 20px; font-size: 10px; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+        /* تصميم الغرفة والمايكات */
+        .room-container { background: #1a172c; border-radius: 12px; padding: 15px; margin-top: 15px; border: 1px solid #eab308; }
+        .mics-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; margin-top: 15px; }
+        .mic-slot { width: 75px; height: 75px; border-radius: 50%; background: #ef4444; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; cursor: pointer; font-size: 12px; font-weight: bold; border: 2px solid #b91c1c; }
+        .mic-slot.active { background: #22c55e; border-color: #15803d; }
+        .mic-badge { position: absolute; top: -5px; right: -5px; background: #eab308; color: #000; border-radius: 50%; width: 22px; height: 22px; font-size: 11px; display: flex; align-items: center; justify-content: center; font-weight: bold; }
         
-        .users-panel { background: #222; border-radius: 8px; padding: 10px; max-height: 150px; overflow-y: auto; text-align: right; font-size: 13px; }
-        .user-item { padding: 4px 0; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; }
-        
-        .post { border-bottom: 1px solid #444; padding-bottom: 10px; margin-bottom: 15px; }
-        .comments-section { background: #252525; padding: 8px; border-radius: 5px; margin-top: 8px; font-size: 12px; }
-        .comment-item { border-bottom: 1px solid #333; padding: 3px 0; }
-        .file-upload { background: #42b72a; color: white; text-align: center; padding: 8px; border-radius: 5px; cursor: pointer; display: block; margin: 5px 0; font-weight: bold; }
+        .header-flex { display: flex; align-items: center; justify-content: space-between; }
+        .avatar-circle { width: 60px; height: 60px; border-radius: 50%; background: #332d5e; display: flex; align-items: center; justify-content: center; border: 2px solid #a855f7; }
     </style>
 </head>
 <body>
 
-    <h2 style="text-align: center; color: #ff5252;">🔥 فضايح السودانين علي يلاليدو 🔥</h2>
+    <!-- قسم تسجيل الدخول وإنشاء الحساب (يظهر إذا لم يتم تسجيل الدخول) -->
+    <div id="auth-wrapper" class="card">
+        <h3 style="text-align: center; color: #f43f5e;">🔥 فضائح يلا ليدو 🔥</h3>
+        
+        <div id="signup-section">
+            <h4 style="color: #c084fc;">تسجيل الدخول للمنصة</h4>
+            <input type="text" id="reg-user" placeholder="اسم المستخدم">
+            <input type="password" id="reg-pass" placeholder="كلمة المرور">
+            <button id="signup-btn" type="button">حساب جديد</button>
+        </div>
 
-    <!-- قسم التسجيل والدخول -->
-    <div id="auth-section" class="card">
-        <h3>تسجيل الدخول / إنشاء حساب جديد</h3>
-        <input type="text" id="username" placeholder="اسم المستخدم">
-        <input type="password" id="password" placeholder="كلمة المرور">
-        <button onclick="register()">إنشاء حساب جديد</button>
-        <hr>
-        <h3>تسجيل الدخول</h3>
-        <input type="text" id="login-id" placeholder="رقم الـ ID الخاص بك (يظهر تلقائياً)">
-        <input type="password" id="login-pass" placeholder="كلمة المرور">
-        <button onclick="login()">دخول</button>
+        <hr style="border-color: #2a254a; margin: 20px 0;">
+
+        <div id="login-section">
+            <input type="text" id="login-user" placeholder="أدخل الـ ID الخاص بك (مثال: ID-123456)">
+            <input type="password" id="login-pass" placeholder="أدخل كلمة المرور فقط">
+            <button id="login-btn" type="button">دخول</button>
+        </div>
     </div>
 
-    <!-- واجهة الموقع الرئيسية بعد الدخول -->
-    <div id="app-section" class="card hidden">
-        <h3>أهلاً بك: <span id="user-display"></span> (<small id="id-display"></small>)</h3>
+    <!-- المحتوى الرئيسي للموقع (يظهر بعد تسجيل الدخول) -->
+    <div id="main-app" class="hidden">
         
-        <!-- خانة البحث عن الغرفة بواسطة ID -->
-        <div class="card" style="background: #252525;">
-            <h4>🔍 البحث عن غرفة برقم الـ ID</h4>
-            <div style="display: flex; gap: 5px;">
-                <input type="text" id="search-room-id" placeholder="أدخل ID الغرفة (مثال: ROOM-999)" style="margin:0;">
-                <button onclick="searchRoom()" style="width: auto; margin:0; padding: 0 15px;">بحث والانضمام</button>
+        <!-- البروفايل والمعلومات الشخصية -->
+        <div class="card header-flex">
+            <div>
+                <h3 id="profile-name" style="margin: 0; color: #fff;">اسم المستخدم</h3>
+                <span id="profile-id" style="color: #a855f7; font-size: 14px;">(ID-216733)</span>
+                <br><br>
+                <button style="width: auto; padding: 6px 15px; font-size: 12px;" id="change-avatar-btn">تغيير الصورة</button>
             </div>
-            <div id="search-result" style="margin-top: 5px; font-size: 12px; color: #aaa;"></div>
+            <div class="avatar-circle">
+                <span style="font-size: 24px;">👤</span>
+            </div>
         </div>
 
-        <!-- غرفة المايكات الصوتية (5 مايكات) -->
+        <!-- البحث عن غرفة -->
+        <div class="card">
+            <h4 style="color: #38bdf8; text-align: center;">🔍 البحث عن غرفة برقم الـ ID</h4>
+            <input type="text" id="room-search-input" placeholder="أدخل ID الغرفة (مثال: 555122)">
+            <button id="join-room-btn">انضمام</button>
+        </div>
+
+        <!-- غرفة البث الصوتي (5 مايكات تفاعلية) -->
         <div class="room-container">
-            <h4 id="room-title">🎙️ الغرفة الحالية (5 مايكات)</h4>
-            <div class="mics-grid" id="mics-grid"></div>
+            <h4 style="text-align: center; margin: 0 0 5px 0;">🎤 الغرفة: <span id="current-room-id">ROOM-999</span> (5 مايكات)</h4>
+            <p style="text-align: center; font-size: 12px; color: #94a3b8;">اضغط على الميكروفون للصعود أو النزول (ضغطة مطولة للقفل/الفتح)</p>
             
-            <div id="owner-controls" class="hidden" style="margin-top: 10px; background: #252525; padding: 8px; border-radius: 5px;">
-                <small style="color: #d4af37;">👑 لوحة تحكم المالك:</small>
-                <div style="display: flex; gap: 5px; margin-top: 5px;">
-                    <select id="target-mic" style="margin:0; padding:5px;">
-                        <option value="1">مايك 1</option><option value="2">مايك 2</option><option value="3">مايك 3</option><option value="4">مايك 4</option><option value="5">مايك 5</option>
-                    </select>
-                    <button onclick="toggleMicLock()" style="background: #e53935; margin:0; width: auto; padding: 5px 10px;">فتح/قفل</button>
-                </div>
+            <div class="mics-grid">
+                <div class="mic-slot" data-mic="1"><span class="mic-badge">1</span><span class="mic-text">مايك 1</span></div>
+                <div class="mic-slot" data-mic="2"><span class="mic-badge">2</span><span class="mic-text">مايك 2</span></div>
+                <div class="mic-slot" data-mic="3"><span class="mic-badge">3</span><span class="mic-text">مايك 3</span></div>
+                <div class="mic-slot" data-mic="4"><span class="mic-badge">4</span><span class="mic-text">مايك 4</span></div>
+                <div class="mic-slot" data-mic="5"><span class="mic-badge">5</span><span class="mic-text">مايك 5</span></div>
             </div>
         </div>
 
-        <!-- لوحة المتواجدين -->
-        <div class="card" style="margin-top: 15px;">
-            <h4>👥 المتواجدون في الغرفة (<span id="online-count">0</span>)</h4>
-            <div class="users-panel" id="online-users-list">جاري التحميل...</div>
+        <!-- المتواجدون في الغرفة -->
+        <div class="card">
+            <h4 style="color: #60a5fa;">👥 المتواجدون في الغرفة (<span id="online-count">1</span>)</h4>
+            <div id="online-users-list" style="background: #221e3d; padding: 10px; border-radius: 8px; font-size: 14px;">
+                Allgghh (ID-216733)
+            </div>
         </div>
 
-        <!-- المنشورات -->
+        <!-- نشر صورة أو قصة -->
         <div class="card">
-            <h4>📝 انشر صورة أو قصة للجميع</h4>
-            <textarea id="post-text" placeholder="اكتب فضيحة أو قصة اليوم..."></textarea>
-            <label class="file-upload">
-                📁 اختر صورة من الأستوديو
-                <input type="file" id="post-file" accept="image/*" style="display: none;" onchange="previewImage(event)">
-            </label>
-            <div id="image-preview-name" style="font-size: 12px; color: #aaa; margin-bottom: 5px;"></div>
-            <button onclick="addPost()">نشر للجميع</button>
+            <h4 style="color: #f472b6;">📝 انشر صورة أو قصة للجميع</h4>
+            <textarea id="post-text" placeholder="اكتب ما يدور في الغرفة ..." rows="3"></textarea>
+            <input type="file" id="post-file">
+            <button id="publish-btn">نشر</button>
         </div>
 
+        <!-- المنشورات والتعليقات -->
         <div class="card">
-            <h4>📰 جدار المنشورات والكواليس</h4>
-            <div id="posts-container">جاري تحميل المنشورات...</div>
+            <h4 style="color: #38bdf8;">💬 المنشورات والتعليقات</h4>
+            <div id="posts-container" style="color: #94a3b8; font-size: 13px; text-align: center; padding: 10px;">
+                لا توجد منشورات حالياً...
+            </div>
         </div>
 
+        <!-- إعدادات الحساب -->
         <div class="card">
-            <h4>⚙️ إعدادات الحساب</h4>
+            <h4 style="color: #f43f5e;">⚙️ إعدادات الحساب</h4>
             <input type="password" id="old-pass" placeholder="كلمة المرور القديمة">
             <input type="password" id="new-pass" placeholder="كلمة المرور الجديدة">
-            <button onclick="changePassword()">تحديث كلمة المرور</button>
-            <br>
-            <button onclick="logout()" style="background: #e53935; margin-top: 10px;">تسجيل خروج 🚪</button>
+            <button id="update-pass-btn">تحديث كلمة المرور</button>
+            <button id="logout-btn" class="btn-danger" style="margin-top: 10px;">تسجيل خروج 🚪</button>
         </div>
+
     </div>
 
-    <script src="/socket.io/socket.io.js"></script>
+    <!-- برمجة النظام بالكامل عبر LocalStorage ليعمل بدون سيرفر -->
     <script>
-        const socket = io();
-        let currentUser = null;
-        let selectedImageBase64 = null;
-        let currentRoomId = 'ROOM-999'; // الغرفة الافتراضية
-        let roomMics = { 1:{user:null,locked:false}, 2:{user:null,locked:false}, 3:{user:null,locked:false}, 4:{user:null,locked:false}, 5:{user:null,locked:false} };
+        // التحقق من حالة تسجيل السابقة عند فتح الصفحة
+        window.addEventListener('DOMContentLoaded', () => {
+            const activeUser = localStorage.getItem('yallaludo_logged_user');
+            if (activeUser) {
+                showApp(activeUser);
+            }
+        });
 
-        window.onload = function() {
-            const savedId = localStorage.getItem('ludo_user_id');
-            if (savedId) document.getElementById('login-id').value = savedId;
-        };
+        // زر إنشاء حساب جديد
+        document.getElementById('signup-btn').addEventListener('click', () => {
+            const user = document.getElementById('reg-user').value.trim();
+            const pass = document.getElementById('reg-pass').value.trim();
 
-        async function register() {
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-            const res = await fetch('/api/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }) });
-            const data = await res.json();
-            if (data.success) {
-                localStorage.setItem('ludo_user_id', data.user.id);
-                document.getElementById('login-id').value = data.user.id;
-                alert(`تم إنشاء الحساب بنجاح! الـ ID: ${data.user.id}`);
-            } else { alert(data.error); }
-        }
+            if (!user || !pass) {
+                alert('الرجاء إدخال اسم المستخدم وكلمة المرور');
+                return;
+            }
 
-        async function login() {
-            const userId = document.getElementById('login-id').value;
-            const password = document.getElementById('login-pass').value;
-            const res = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId, password }) });
-            const data = await res.json();
-            if (data.success) {
-                currentUser = data.user;
-                localStorage.setItem('ludo_user_id', currentUser.id);
-                document.getElementById('auth-section').classList.add('hidden');
-                document.getElementById('app-section').classList.remove('hidden');
-                document.getElementById('user-display').innerText = currentUser.username;
-                document.getElementById('id-display').innerText = currentUser.id;
-                document.getElementById('owner-controls').classList.remove('hidden');
+            const randomId = 'ID-' + Math.floor(100000 + Math.random() * 900000);
+            localStorage.setItem('yallaludo_username', user);
+            localStorage.setItem('yallaludo_password', pass);
+            localStorage.setItem('yallaludo_id', randomId);
+            
+            localStorage.setItem('yallaludo_logged_user', user);
+            alert('تم إنشاء الحساب بنجاح! الـ ID الخاص بك هو: ' + randomId);
+            showApp(user);
+        });
 
-                joinRoom(currentRoomId);
-                loadPosts();
-            } else { alert(data.error); }
-        }
+        // زر تسجيل الدخول
+        document.getElementById('login-btn').addEventListener('click', () => {
+            const inputUser = document.getElementById('login-user').value.trim();
+            const inputPass = document.getElementById('login-pass').value.trim();
 
-        function joinRoom(roomId) {
-            currentRoomId = roomId;
-            document.getElementById('room-title').innerText = `🎙️ الغرفة: ${roomId} (5 مايكات)`;
-            socket.emit('join-room', { user: currentUser, roomId });
-        }
+            const savedUser = localStorage.getItem('yallaludo_username');
+            const savedPass = localStorage.getItem('yallaludo_password');
+            const savedId = localStorage.getItem('yallaludo_id');
 
-        async function searchRoom() {
-            const searchId = document.getElementById('search-room-id').value.trim();
-            if (!searchId) return;
-            const res = await fetch(`/api/room/${searchId}`);
-            const data = await res.json();
-            if (data.exists) {
-                document.getElementById('search-result').innerText = `تم العثور على الغرفة والانضمام إليها!`;
-                joinRoom(searchId);
+            if ((inputUser === savedUser || inputUser === savedId) && inputPass === savedPass) {
+                localStorage.setItem('yallaludo_logged_user', savedUser);
+                alert('تم تسجيل الدخول بنجاح!');
+                showApp(savedUser);
             } else {
-                document.getElementById('search-result').innerText = `الغرفة غير موجودة، تم إنشاؤها والانضمام إليها تلقائياً.`;
-                joinRoom(searchId);
+                alert('خطأ في البيانات المدخلة، تأكد من الـ ID وكلمة المرور.');
             }
-        }
-
-        function logout() {
-            currentUser = null;
-            document.getElementById('app-section').classList.add('hidden');
-            document.getElementById('auth-section').classList.remove('hidden');
-            document.getElementById('login-pass').value = '';
-        }
-
-        function takeMic(micNum) {
-            socket.emit('request-mic', { roomId: currentRoomId, micNum, user: currentUser });
-        }
-
-        function toggleMicLock() {
-            const micNum = document.getElementById('target-mic').value;
-            socket.emit('toggle-lock', { roomId: currentRoomId, micNum });
-        }
-
-        socket.on('update-room-state', (state) => {
-            roomMics = state.mics;
-            renderMics();
-            const usersListEl = document.getElementById('online-users-list');
-            document.getElementById('online-count').innerText = state.users.length;
-            usersListEl.innerHTML = state.users.map(u => `<div class="user-item"><span>👤 ${u.username}</span><small>(${u.id})</small></div>`).join('');
         });
 
-        function renderMics() {
-            const grid = document.getElementById('mics-grid');
-            let html = '';
-            for (let i = 1; i <= 5; i++) {
-                const mic = roomMics[i];
-                let statusClass = '', content = `🎤<br>مايك ${i}`;
-                if (mic.locked) { statusClass = 'locked'; content = `🔒<br>مقفول`; }
-                else if (mic.user) { statusClass = 'active'; content = `🗣️<br>${mic.user.username}`; }
-                html += `<div class="mic-slot ${statusClass}" onclick="takeMic(${i})"><div class="mic-number">${i}</div>${content}</div>`;
-            }
-            grid.innerHTML = html;
+        function showApp(username) {
+            document.getElementById('auth-wrapper').classList.add('hidden');
+            document.getElementById('main-app').classList.remove('hidden');
+            document.getElementById('profile-name').innerText = username;
+            const storedId = localStorage.getItem('yallaludo_id') || 'ID-216733';
+            document.getElementById('profile-id').innerText = '(' + storedId + ')';
         }
 
-        function previewImage(event) {
-            const file = event.target.files[0];
-            if (file) {
-                document.getElementById('image-preview-name').innerText = "تم اختيار الصورة: " + file.name;
-                const reader = new FileReader();
-                reader.onload = function(e) { selectedImageBase64 = e.target.result; };
-                reader.readAsDataURL(file);
-            }
-        }
-
-        async function addPost() {
-            const text = document.getElementById('post-text').value;
-            if (!text && !selectedImageBase64) return alert('اكتب شيئاً أو أرفق صورة للنشر!');
-            await fetch('/api/posts', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId: currentUser.id, username: currentUser.username, text, media: selectedImageBase64 })
+        // تفاعل المايكات (صعود / نزول)
+        document.querySelectorAll('.mic-slot').forEach(slot => {
+            slot.addEventListener('click', () => {
+                if (slot.classList.contains('active')) {
+                    slot.classList.remove('active');
+                    slot.querySelector('.mic-text').innerText = 'مايك ' + slot.getAttribute('data-mic');
+                } else {
+                    slot.classList.add('active');
+                    const currentName = localStorage.getItem('yallaludo_username') || 'مستخدم';
+                    slot.querySelector('.mic-text').innerText = currentName;
+                }
             });
-            document.getElementById('post-text').value = '';
-            document.getElementById('post-file').value = '';
-            document.getElementById('image-preview-name').innerText = '';
-            selectedImageBase64 = null;
-        }
-
-        // استقبال المنشورات الجديدة فوراً لكل المستخدمين
-        socket.on('new-post-broadcast', (posts) => {
-            renderPosts(posts);
         });
 
-        async function loadPosts() {
-            const res = await fetch('/api/posts');
-            const posts = await res.json();
-            renderPosts(posts);
-        }
-
-        function renderPosts(posts) {
+        // زر النشر
+        document.getElementById('publish-btn').addEventListener('click', () => {
+            const text = document.getElementById('post-text').value.trim();
+            if (!text) {
+                alert('اكتب شيئاً قبل النشر');
+                return;
+            }
             const container = document.getElementById('posts-container');
-            container.innerHTML = posts.map(p => `
-                <div class="post">
-                    <strong>${p.username}</strong> <small>(${p.userId})</small>
-                    <p>${p.text}</p>
-                    ${p.media ? `<img src="${p.media}" style="max-width:100%; border-radius:5px; margin-top:5px;">` : ''}
-                    
-                    <div class="comments-section">
-                        <small style="font-weight:bold;">التعليقات:</small>
-                        <div id="comments-${p.id}">
-                            ${p.comments.map(c => `<div class="comment-item"><strong>${c.username}:</strong> ${c.text}</div>`).join('')}
-                        </div>
-                        <div style="display: flex; gap: 5px; margin-top: 5px;">
-                            <input type="text" id="comment-input-${p.id}" placeholder="اكتب تعليقاً..." style="margin:0; padding:5px; font-size:12px;">
-                            <button onclick="addComment(${p.id})" style="width: auto; margin:0; padding: 2px 10px; font-size:12px;">تعليق</button>
-                        </div>
-                    </div>
-                </div>
-            `).join('');
-        }
+            if (container.innerText.includes('لا توجد منشورات')) {
+                container.innerHTML = '';
+            }
+            const postDiv = document.createElement('div');
+            postDiv.style.cssText = 'background: #221e3d; padding: 10px; margin-top: 8px; border-radius: 6px; text-align: right; color: #fff;';
+            postDiv.innerText = text;
+            container.prepend(postDiv);
+            document.getElementById('post-text').value = '';
+            alert('تم النشر بنجاح!');
+        });
 
-        async function addComment(postId) {
-            const input = document.getElementById(`comment-input-${postId}`);
-            const text = input.value.trim();
-            if (!text) return;
-            await fetch('/api/comments', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ postId, userId: currentUser.id, username: currentUser.username, text })
-            });
-            input.value = '';
-        }
+        // تغيير كلمة المرور
+        document.getElementById('update-pass-btn').addEventListener('click', () => {
+            const oldP = document.getElementById('old-pass').value.trim();
+            const newP = document.getElementById('new-pass').value.trim();
+            const savedPass = localStorage.getItem('yallaludo_password');
 
-        async function changePassword() {
-            const oldPassword = document.getElementById('old-pass').value;
-            const newPassword = document.getElementById('new-pass').value;
-            const res = await fetch('/api/change-password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: currentUser.id, oldPassword, newPassword }) });
-            const data = await res.json();
-            alert(data.message || data.error);
-        }
+            if (oldP === savedPass && newP) {
+                localStorage.setItem('yallaludo_password', newP);
+                alert('تم تحديث كلمة المرور بنجاح!');
+                document.getElementById('old-pass').value = '';
+                document.getElementById('new-pass').value = '';
+            } else {
+                alert('كلمة المرور القديمة غير صحيحة أو الحقل فارغ.');
+            }
+        });
+
+        // تسجيل الخروج
+        document.getElementById('logout-btn').addEventListener('click', () => {
+            localStorage.removeItem('yallaludo_logged_user');
+            location.reload();
+        });
     </script>
 </body>
 </html>
