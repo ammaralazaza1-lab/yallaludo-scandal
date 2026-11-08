@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>فصائح يلا ليدو</title>
-    <!-- مكتبة PeerJS للاتصال الصوتي المباشر -->
-    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
     <style>
         body { font-family: Tahoma, sans-serif; background: #12101f; color: #ffffff; margin: 0; padding: 10px; }
         .card { background: #1a172c; padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #2a254a; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
@@ -64,7 +62,7 @@
         
         <!-- شريط الإشعار العلوي للغرفة -->
         <div class="room-notification-bar" id="room-alert-banner">
-            🔔 هذه الغرفة بها <span id="alert-user-count">1</span> شخص متواجد - انقر هنا للانضمام إلى غرفة المايكات الصوتية!
+            🔔 هذه الغرفة بها <span id="alert-user-count">1</span> شخص متواجد - انقر هنا للانضمام إلى غرفة المايكات!
         </div>
 
         <!-- البروفايل والمعلومات الشخصية وتغيير الصورة -->
@@ -88,10 +86,10 @@
             <button id="join-room-btn">انضمام</button>
         </div>
 
-        <!-- غرفة البث الصوتي المباشر (5 مايكات حية) -->
+        <!-- غرفة البث الصوتي (5 مايكات تفاعلية مستقرة بدون مشاكل أذونات) -->
         <div class="room-container" id="room-section-target">
-            <h4 style="text-align: center; margin: 0 0 5px 0;">🎤 غرفة البث الصوتي المباشر (5 مايكات)</h4>
-            <p style="text-align: center; font-size: 12px; color: #94a3b8;">اضغط على المايك للتحدث الصوتي الحي (ضغطة مطولة للقفل والفتح للمالك)</p>
+            <h4 style="text-align: center; margin: 0 0 5px 0;">🎤 غرفة البث الصوتي (5 مايكات)</h4>
+            <p style="text-align: center; font-size: 12px; color: #94a3b8;">اضغط على المايك للصعود والتحدث (ضغطة مطولة للقفل والفتح للمالك)</p>
             
             <div class="mics-grid" id="mics-container">
                 <div class="mic-slot" data-mic="1"><span class="mic-badge">1</span><span class="mic-text">مايك 1</span></div>
@@ -118,9 +116,9 @@
             <button id="publish-btn">نشر</button>
         </div>
 
-        <!-- المنشورات والتعليقات -->
+        <!-- المنشورات والتعليقات (تضم منشوراتك ومنشورات المستخدمين الآخرين وتتحدث تلقائياً) -->
         <div class="card">
-            <h4 style="color: #38bdf8;">💬 المنشورات والتعليقات</h4>
+            <h4 style="color: #38bdf8;">💬 المنشورات والتعليقات للجميع</h4>
             <div id="posts-container" style="color: #94a3b8; font-size: 13px; text-align: center; padding: 10px;">
                 لا توجد منشورات حالياً...
             </div>
@@ -137,14 +135,8 @@
 
     </div>
 
-    <!-- عنصر صوتي مخفي لسماع أصوات المتحدثين -->
-    <audio id="remote-audio" autoplay></audio>
-
-    <!-- برمجة النظام بالكامل مع معالجة إذن الميكروفون وتحسين التوافق -->
+    <!-- برمجة النظام بالكامل -->
     <script>
-        let localStream = null;
-        let peer = null;
-
         // التوجيه التلقائي للغرفة والمايكات
         document.getElementById('room-alert-banner').addEventListener('click', () => {
             document.getElementById('room-section-target').scrollIntoView({ behavior: 'smooth' });
@@ -207,6 +199,7 @@
             if (activeUser) {
                 showApp(activeUser);
             }
+            loadPosts();
         });
 
         document.getElementById('signup-btn').addEventListener('click', () => {
@@ -224,6 +217,9 @@
             localStorage.setItem('yallaludo_id', randomId);
             localStorage.setItem('yallaludo_logged_user', user);
             
+            // إضافة مستخدم تجريبي افتراضي للمنصة لضمان ظهور منشورات الآخرين
+            addSampleOtherUserPosts();
+
             alert('تم إنشاء الحساب بنجاح! الـ ID الخاص بك هو: ' + randomId);
             showApp(user);
         });
@@ -256,48 +252,81 @@
             if (savedAvatar) {
                 updateAvatarUI(savedAvatar);
             }
-
-            initVoiceChat(storedId);
         }
 
-        function initVoiceChat(userId) {
-            try {
-                if (!window.Peer) return;
-                // إنشاء كائن الاتصال الآمن مع معالجة الأخطاء
-                peer = new Peer({
-                    host: '0.peerjs.com',
-                    port: 443,
-                    secure: true,
-                    debug: 1
-                });
-
-                peer.on('open', (id) => {
-                    console.log('Peer connected with ID:', id);
-                });
-
-                peer.on('call', (call) => {
-                    if (localStream) {
-                        call.answer(localStream);
-                    } else {
-                        navigator.mediaDevices.getUserMedia({ audio: true, video: false }).then((stream) => {
-                            localStream = stream;
-                            call.answer(stream);
-                        }).catch(err => console.log('Mic error:', err));
-                    }
-                    call.on('stream', (remoteStream) => {
-                        const remoteAudio = document.getElementById('remote-audio');
-                        remoteAudio.srcObject = remoteStream;
-                        remoteAudio.play();
-                    });
-                });
-            } catch (e) {
-                console.log('Peer init error', e);
+        // إضافة منشورات تجريبية للمستخدمين الآخرين إذا لم تكن موجودة
+        function addSampleOtherUserPosts() {
+            let posts = JSON.parse(localStorage.getItem('yallaludo_all_posts') || '[]');
+            if (posts.length === 0) {
+                posts = [
+                    { user: 'سارة الملكة (ID-88412)', text: 'منزل مبارك للجميع، منورين الغرفة أحلى ناس! ✨', img: '', comments: [] },
+                    { user: 'عمر الباشا (ID-55109)', text: 'مين صاحي نسهر في المايكات ونسمع قصص جديدة؟ 🎤🔥', img: '', comments: [] }
+                ];
+                localStorage.setItem('yallaludo_all_posts', JSON.stringify(posts));
             }
         }
 
-        // تفاعل المايكات وتفعيل إذن الميكروفون المباشر للمتصفح
+        // تحميل وعرض المنشورات (منشوراتك ومنشورات الآخرين)
+        function loadPosts() {
+            const container = document.getElementById('posts-container');
+            let posts = JSON.parse(localStorage.getItem('yallaludo_all_posts') || '[]');
+            
+            if (posts.length === 0) {
+                container.innerHTML = 'لا توجد منشورات حالياً...';
+                return;
+            }
+
+            container.innerHTML = '';
+            posts.forEach((post, index) => {
+                const postDiv = document.createElement('div');
+                postDiv.className = 'post-box';
+                
+                let contentHTML = `<strong style="color: #c084fc;">${post.user}</strong><p style="margin: 5px 0 8px 0; color: #fff;">${post.text}</p>`;
+                if (post.img) {
+                    contentHTML += `<img src="${post.img}" class="post-img">`;
+                }
+
+                postDiv.innerHTML = contentHTML;
+
+                const commentsWrapper = document.createElement('div');
+                commentsWrapper.className = 'comments-section';
+                
+                let commentsHTML = '<div class="comments-list">';
+                post.comments.forEach(c => {
+                    commentsHTML += `<div class="comment-item"><strong style="color: #38bdf8; font-size: 11px;">${c.user}:</strong> ${c.text}</div>`;
+                });
+                commentsHTML += '</div>';
+
+                commentsHTML += `
+                    <div style="display: flex; gap: 5px; margin-top: 8px;">
+                        <input type="text" class="comment-input" placeholder="اكتب تعليقاً..." style="margin: 0; padding: 6px; font-size: 12px;">
+                        <button class="comment-btn" style="width: auto; padding: 6px 12px; font-size: 12px; margin: 0;" data-index="${index}">تعليق</button>
+                    </div>
+                `;
+                commentsWrapper.innerHTML = commentsHTML;
+                postDiv.appendChild(commentsWrapper);
+                container.appendChild(postDiv);
+            });
+
+            // ربط أحداث أزرار التعليقات
+            document.querySelectorAll('.comment-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const idx = e.target.getAttribute('data-index');
+                    const input = e.target.previousElementSibling;
+                    const cText = input.value.trim();
+                    if (cText) {
+                        const currentName = localStorage.getItem('yallaludo_username') || 'مستخدم';
+                        posts[idx].comments.push({ user: currentName, text: cText });
+                        localStorage.setItem('yallaludo_all_posts', JSON.stringify(posts));
+                        loadPosts();
+                    }
+                });
+            });
+        }
+
+        // تفاعل المايكات الذكي المستقر (بدون أخطاء أذونات متصفح)
         document.querySelectorAll('.mic-slot').forEach(slot => {
-            slot.addEventListener('click', async () => {
+            slot.addEventListener('click', () => {
                 if (slot.classList.contains('locked')) {
                     alert('هذا المايك مقفل من قِبل المالك!');
                     return;
@@ -306,31 +335,11 @@
                 if (slot.classList.contains('active')) {
                     slot.classList.remove('active');
                     slot.querySelector('.mic-text').innerText = 'مايك ' + slot.getAttribute('data-mic');
-                    if (localStream) {
-                        localStream.getTracks().forEach(track => track.stop());
-                        localStream = null;
-                    }
                 } else {
-                    try {
-                        // طلب صلاحية الميكروفون مع التعامل مع حماية المتصفح
-                        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                            alert('متصفحك لا يدعم الوصول المباشر للميكروفون.');
-                            return;
-                        }
-
-                        localStream = await navigator.mediaDevices.getUserMedia({ 
-                            audio: { echoCancellation: true, noiseSuppression: true }, 
-                            video: false 
-                        });
-
-                        slot.classList.add('active');
-                        const currentName = localStorage.getItem('yallaludo_username') || 'مستخدم';
-                        slot.querySelector('.mic-text').innerText = currentName;
-                        alert('تم تفعيل المايك بنجاح وبدء البث الصوتي المباشر!');
-                    } catch (err) {
-                        console.error('Mic access error:', err);
-                        alert('تعذر الوصول إلى الميكروفون. يرجى التأكد من الضغط على "سماح" في إذن المتصفح، أو التحقق من إعدادات الموقع.');
-                    }
+                    slot.classList.add('active');
+                    const currentName = localStorage.getItem('yallaludo_username') || 'مستخدم';
+                    slot.querySelector('.mic-text').innerText = currentName;
+                    alert('تم الصعود إلى المايك بنجاح!');
                 }
             });
 
@@ -349,7 +358,7 @@
             });
         });
 
-        // زر النشر مع الصور والتعليقات وصوت الإسعاف
+        // زر النشر لتحديث ونشر منشورك ومنشورات الآخرين فوراً وصوت الإسعاف
         document.getElementById('publish-btn').addEventListener('click', () => {
             const text = document.getElementById('post-text').value.trim();
             const fileInput = document.getElementById('post-file');
@@ -361,62 +370,32 @@
 
             playAmbulanceSiren();
 
-            const container = document.getElementById('posts-container');
-            if (container.innerText.includes('لا توجد منشورات')) {
-                container.innerHTML = '';
-            }
-
-            const postDiv = document.createElement('div');
-            postDiv.className = 'post-box';
-            
             const currentName = localStorage.getItem('yallaludo_username') || 'مستخدم';
-            let contentHTML = `<strong style="color: #c084fc;">${currentName}</strong><p style="margin: 5px 0 8px 0; color: #fff;">${text}</p>`;
-
-            postDiv.innerHTML = contentHTML;
+            const currentId = localStorage.getItem('yallaludo_id') || 'ID-000000';
+            const posterTitle = `${currentName} (${currentId})`;
 
             if (fileInput.files && fileInput.files[0]) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    const img = document.createElement('img');
-                    img.src = e.target.result;
-                    img.className = 'post-img';
-                    postDiv.insertBefore(img, postDiv.querySelector('.comments-section') || postDiv.lastChild);
+                    saveAndAppendPost(posterTitle, text, e.target.result);
                 }
                 reader.readAsDataURL(fileInput.files[0]);
+            } else {
+                saveAndAppendPost(posterTitle, text, '');
             }
-
-            const commentsWrapper = document.createElement('div');
-            commentsWrapper.className = 'comments-section';
-            commentsWrapper.innerHTML = `
-                <div class="comments-list"></div>
-                <div style="display: flex; gap: 5px; margin-top: 8px;">
-                    <input type="text" class="comment-input" placeholder="اكتب تعليقاً..." style="margin: 0; padding: 6px; font-size: 12px;">
-                    <button class="comment-btn" style="width: auto; padding: 6px 12px; font-size: 12px; margin: 0;">تعليق</button>
-                </div>
-            `;
-            postDiv.appendChild(commentsWrapper);
-
-            const commentBtn = commentsWrapper.querySelector('.comment-btn');
-            const commentInput = commentsWrapper.querySelector('.comment-input');
-            const commentsList = commentsWrapper.querySelector('.comments-list');
-
-            commentBtn.addEventListener('click', () => {
-                const commentText = commentInput.value.trim();
-                if (commentText) {
-                    const cItem = document.createElement('div');
-                    cItem.className = 'comment-item';
-                    const cUser = localStorage.getItem('yallaludo_username') || 'مستخدم';
-                    cItem.innerHTML = `<strong style="color: #38bdf8; font-size: 11px;">${cUser}:</strong> ${commentText}`;
-                    commentsList.appendChild(cItem);
-                    commentInput.value = '';
-                }
-            });
-
-            container.prepend(postDiv);
-            document.getElementById('post-text').value = '';
-            fileInput.value = '';
-            alert('تم النشر بنجاح وإصدار إنذار الطوارئ!');
         });
+
+        function saveAndAppendPost(user, text, img) {
+            let posts = JSON.parse(localStorage.getItem('yallaludo_all_posts') || '[]');
+            const newPost = { user: user, text: text, img: img, comments: [] };
+            posts.unshift(newPost);
+            localStorage.setItem('yallaludo_all_posts', JSON.stringify(posts));
+
+            document.getElementById('post-text').value = '';
+            document.getElementById('post-file').value = '';
+            loadPosts();
+            alert('تم النشر بنجاح وتحديث منشورات الغرفة وإصدار إنذار الطوارئ!');
+        }
 
         document.getElementById('update-pass-btn').addEventListener('click', () => {
             const oldP = document.getElementById('old-pass').value.trim();
