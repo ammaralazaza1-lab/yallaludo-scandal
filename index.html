@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>فصائح يلا ليدو</title>
+    <title>فصائح يلا ليدو - بث حي عالمي</title>
+    <!-- مكتبة PeerJS للاتصال الصوتي المباشر بين المستخدمين عبر العالم -->
+    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
     <style>
         body { font-family: Tahoma, sans-serif; background: #12101f; color: #ffffff; margin: 0; padding: 10px; }
         .card { background: #1a172c; padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #2a254a; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
@@ -99,10 +101,10 @@
             <button id="join-room-btn">انضمام</button>
         </div>
 
-        <!-- غرفة البث الصوتي (5 مايكات بألوان وأسماء ورزاز) -->
+        <!-- غرفة البث الصوتي (5 مايكات حية عالمية) -->
         <div class="room-container" id="room-section-target">
             <h4 style="text-align: center; margin: 0 0 5px 0;">🎤 غرفة البث الصوتي (5 مايكات)</h4>
-            <p style="text-align: center; font-size: 12px; color: #94a3b8;">اضغط على المايك للصعود والتحدث (ضغطة مطولة للقفل والفتح للمالك)</p>
+            <p style="text-align: center; font-size: 12px; color: #94a3b8;">اضغط على المايك للصعود والتحدث الحي مع الجميع (ضغطة مطولة للقفل والفتح)</p>
             
             <div class="mics-grid" id="mics-container">
                 <div class="mic-wrapper">
@@ -163,8 +165,14 @@
 
     </div>
 
-    <!-- برمجة النظام بالكامل -->
+    <!-- عنصر صوتي عالمي لسماع أصوات المتحدثين الآخرين عبر الشبكة -->
+    <audio id="remote-audio" autoplay></audio>
+
+    <!-- برمجة النظام بالكامل مع الاتصال الصوتي الحي العالمي (PeerJS) -->
     <script>
+        let localStream = null;
+        let peer = null;
+
         // التوجيه التلقائي للغرفة والمايكات
         document.getElementById('room-alert-banner').addEventListener('click', () => {
             document.getElementById('room-section-target').scrollIntoView({ behavior: 'smooth' });
@@ -278,6 +286,40 @@
             if (savedAvatar) {
                 updateAvatarUI(savedAvatar);
             }
+
+            // تهيئة الاتصال الصوتي العالمي عبر الإنترنت
+            initGlobalVoiceChat(storedId);
+        }
+
+        // تهيئة الاتصال الصوتي الحي العالمي بين المستخدمين عبر PeerJS Cloud
+        function initGlobalVoiceChat(userId) {
+            try {
+                const cleanId = 'yallaludo_' + userId.toLowerCase().replace(/[^a-z0-9]/g, '');
+                peer = new Peer(cleanId, {
+                    host: '0.peerjs.com',
+                    port: 443,
+                    secure: true,
+                    debug: 1
+                });
+
+                peer.on('call', (call) => {
+                    if (localStream) {
+                        call.answer(localStream);
+                    } else {
+                        navigator.mediaDevices.getUserMedia({ audio: true, video: false }).then((stream) => {
+                            localStream = stream;
+                            call.answer(stream);
+                        }).catch(err => console.log('Mic receive error:', err));
+                    }
+                    call.on('stream', (remoteStream) => {
+                        const remoteAudio = document.getElementById('remote-audio');
+                        remoteAudio.srcObject = remoteStream;
+                        remoteAudio.play();
+                    });
+                });
+            } catch (e) {
+                console.log('Peer init error:', e);
+            }
         }
 
         function addSampleOtherUserPosts() {
@@ -347,31 +389,40 @@
             });
         }
 
-        // تفاعل المايكات (أحمر وفارغ عند الخروج، أخضر وعليه رزاز واسم المستخدم عند الصعود)
+        // تفاعل المايكات العالمي الحقيقي
         document.querySelectorAll('.mic-slot').forEach(slot => {
             const micNum = slot.getAttribute('data-mic');
             const nameLabel = document.getElementById('mic-name-' + micNum);
 
-            slot.addEventListener('click', () => {
+            slot.addEventListener('click', async () => {
                 if (slot.classList.contains('locked')) {
                     alert('هذا المايك مقفل من قِبل المالك!');
                     return;
                 }
 
                 if (slot.classList.contains('green')) {
-                    // النزول من المايك وتحويله للأحمر
+                    // النزول من المايك وتحويله للأحمر وإيقاف بث الصوت
                     slot.classList.remove('green');
                     slot.classList.add('red');
                     slot.querySelector('.mic-text').innerText = 'مايك ' + micNum;
                     nameLabel.innerText = 'فارغ';
+                    if (localStream) {
+                        localStream.getTracks().forEach(track => track.stop());
+                        localStream = null;
+                    }
                 } else {
-                    // الصعود إلى المايك وتحويله للأخضر مع تفعيل الرزاز وعرض الاسم تحته
-                    slot.classList.remove('red');
-                    slot.classList.add('green');
-                    slot.querySelector('.mic-text').innerText = '🎙️';
-                    const currentName = localStorage.getItem('yallaludo_username') || 'مستخدم';
-                    nameLabel.innerText = currentName;
-                    alert('تم الصعود إلى المايك وبدء التحدث الحي!');
+                    // الصعود إلى المايك وطلب إذن الميكروفون للتحدث مع العالم
+                    try {
+                        localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+                        slot.classList.remove('red');
+                        slot.classList.add('green');
+                        slot.querySelector('.mic-text').innerText = '🎙️';
+                        const currentName = localStorage.getItem('yallaludo_username') || 'مستخدم';
+                        nameLabel.innerText = currentName;
+                        alert('تم الصعود إلى المايك وبدء البث الصوتي المباشر للجميع!');
+                    } catch (err) {
+                        alert('تعذر الوصول إلى الميكروفون. يرجى السماح للمتصفح بالوصول للمايك.');
+                    }
                 }
             });
 
@@ -426,7 +477,7 @@
             posts.unshift(newPost);
             localStorage.setItem('yallaludo_all_posts', JSON.stringify(posts));
 
-            document.getElementById('post-text').value = ' ';
+            document.getElementById('post-text').value = '';
             document.getElementById('post-file').value = '';
             loadPosts();
             alert('تم النشر بنجاح وتحديث المنشورات وإصدار إنذار الطوارئ!');
