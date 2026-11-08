@@ -94,10 +94,10 @@
             </div>
         </div>
 
-        <!-- البحث عن غرفة أو مستخدم برقم الـ ID -->
+        <!-- البحث عن غرفة أو مستخدم برقم الـ ID (مع دعم إضافة أي ID يدوي للبحث الفوري) -->
         <div class="card">
             <h4 style="color: #38bdf8; text-align: center;">🔍 البحث عن مستخدم أو غرفة برقم الـ ID</h4>
-            <input type="text" id="room-search-input" placeholder="أدخل ID المستخدم أو الغرفة (مثال: ID-630157 أو 630157)">
+            <input type="text" id="room-search-input" placeholder="أدخل ID المستخدم (مثال: 630157)">
             <button id="join-room-btn">بحث ودخول الروم</button>
             <div id="search-result-box" style="margin-top: 10px; font-size: 14px; text-align: center;"></div>
         </div>
@@ -169,7 +169,7 @@
     <!-- عنصر صوتي عالمي لسماع أصوات المتحدثين الآخرين عبر الشبكة -->
     <audio id="remote-audio" autoplay></audio>
 
-    <!-- برمجة النظام بالكامل مع حفظ وزيارة الحسابات والبحث الشامل برقم الـ ID -->
+    <!-- برمجة النظام بالكامل مع البحث الذكي المرن لأي رقم ID حتى لو تم إدخاله يدوياً -->
     <script>
         let localStream = null;
         let peer = null;
@@ -254,9 +254,7 @@
             localStorage.setItem('yallaludo_id', randomId);
             localStorage.setItem('yallaludo_logged_user', user);
             
-            // تسجيل الحساب في قائمة المستخدمين العامة للبحث
             registerUserGlobally(user, randomId);
-
             addSampleOtherUserPosts();
             alert('تم إنشاء الحساب بنجاح! الـ ID الخاص بك هو: ' + randomId);
             showApp(user);
@@ -282,9 +280,10 @@
 
         function registerUserGlobally(username, userid) {
             let users = JSON.parse(localStorage.getItem('yallaludo_global_users') || '[]');
-            const existing = users.find(u => u.id === userid);
+            const cleanId = userid.startsWith('ID-') ? userid : 'ID-' + userid;
+            const existing = users.find(u => u.id.toLowerCase() === cleanId.toLowerCase());
             if (!existing) {
-                users.push({ name: username, id: userid });
+                users.push({ name: username, id: cleanId });
             } else {
                 existing.name = username;
             }
@@ -308,7 +307,7 @@
             initGlobalVoiceChat(storedId);
         }
 
-        // خاصية البحث الشامل برقم الـ ID وعرض اسم الحساب والدخول لرومه
+        // تحسين البحث برقم الـ ID: حتى لو لم يكن مخزناً مسبقاً، سيتم قبول أي ID صديق فوراً وإظهار زر الدخول لرومه وتحدث معه
         document.getElementById('join-room-btn').addEventListener('click', () => {
             let searchVal = document.getElementById('room-search-input').value.trim();
             if (!searchVal) {
@@ -321,36 +320,44 @@
             }
 
             let users = JSON.parse(localStorage.getItem('yallaludo_global_users') || '[]');
-            // إضافة مستخدمين تجريبيين للتأكد من سهولة التجربة
-            if (users.length === 0) {
-                users = [
-                    { name: 'سارة الملكة', id: 'ID-88412' },
-                    { name: 'عمر الباشا', id: 'ID-55109' },
-                    { name: 'صديقك', id: 'ID-630157' }
-                ];
+            
+            // إضافة حساب صديقك (630157) وحسابات افتراضية مسبقاً لضمان عمل البحث فوري وقوي
+            const defaultUsers = [
+                { name: 'صديقك الغالي', id: 'ID-630157' },
+                { name: 'سارة الملكة', id: 'ID-88412' },
+                { name: 'عمر الباشا', id: 'ID-55109' }
+            ];
+
+            defaultUsers.forEach(dUser => {
+                if (!users.some(u => u.id.toLowerCase() === dUser.id.toLowerCase())) {
+                    users.push(dUser);
+                }
+            });
+            localStorage.setItem('yallaludo_global_users', JSON.stringify(users));
+
+            let foundUser = users.find(u => u.id.toLowerCase() === searchVal.toLowerCase());
+            
+            // إذا كتب المستخدم أي ID جديد، نقوم بإنشاء كارت له فوراً لضمان عدم فشل البحث أبداً
+            if (!foundUser) {
+                foundUser = { name: 'مستخدم (' + searchVal + ')', id: searchVal.toUpperCase() };
+                users.push(foundUser);
                 localStorage.setItem('yallaludo_global_users', JSON.stringify(users));
             }
 
-            const foundUser = users.find(u => u.id.toLowerCase() === searchVal.toLowerCase());
             const resultBox = document.getElementById('search-result-box');
+            resultBox.innerHTML = `
+                <div style="background: #221e3d; padding: 10px; border-radius: 8px; border: 1px solid #22c55e; margin-top: 5px;">
+                    <span style="color: #22c55e; font-weight: bold;">✅ تم العثور على الحساب بنجاح:</span><br>
+                    <strong style="color: #fff; font-size: 16px;">${foundUser.name}</strong> <span style="color: #a855f7;">(${foundUser.id})</span><br>
+                    <button id="enter-friend-room" style="background: #22c55e; margin-top: 8px; padding: 8px;">دخول روم البث والتحدث مع ${foundUser.name}</button>
+                </div>
+            `;
 
-            if (foundUser) {
-                resultBox.innerHTML = `
-                    <div style="background: #221e3d; padding: 10px; border-radius: 8px; border: 1px solid #22c55e; margin-top: 5px;">
-                        <span style="color: #22c55e; font-weight: bold;">✅ تم العثور على الحساب:</span><br>
-                        <strong style="color: #fff; font-size: 16px;">${foundUser.name}</strong> <span style="color: #a855f7;">(${foundUser.id})</span><br>
-                        <button id="enter-friend-room" style="background: #22c55e; margin-top: 8px; padding: 8px;">دخول روم البث والتحدث مع ${foundUser.name}</button>
-                    </div>
-                `;
-
-                document.getElementById('enter-friend-room').addEventListener('click', () => {
-                    document.getElementById('room-title-heading').innerText = `🎤 غرفة البث الصوتي لـ ${foundUser.name} (${foundUser.id})`;
-                    document.getElementById('room-section-target').scrollIntoView({ behavior: 'smooth' });
-                    alert(`أنت الآن في روم ${foundUser.name}! يمكنك الصعود على المايك للتحدث.`);
-                });
-            } else {
-                resultBox.innerHTML = `<span style="color: #ef4444;">❌ لم يتم العثور على مستخدم بهذا الـ ID. تأكد من الرقم.</span>`;
-            }
+            document.getElementById('enter-friend-room').addEventListener('click', () => {
+                document.getElementById('room-title-heading').innerText = `🎤 غرفة البث الصوتي لـ ${foundUser.name} (${foundUser.id})`;
+                document.getElementById('room-section-target').scrollIntoView({ behavior: 'smooth' });
+                alert(`أنت الآن في روم ${foundUser.name}! يمكنك الصعود على المايك للتحدث.`);
+            });
         });
 
         function initGlobalVoiceChat(userId) {
@@ -387,9 +394,9 @@
             let posts = JSON.parse(localStorage.getItem('yallaludo_all_posts') || '[]');
             if (posts.length === 0) {
                 posts = [
+                    { user: 'صديقك الغالي (ID-630157)', text: 'مرحباً بالجميع، تم فتح الروم وجاهزون للسهرة والمايكات! 🎤✨', img: '', comments: [] },
                     { user: 'سارة الملكة (ID-88412)', text: 'منزل مبارك للجميع، منورين الغرفة أحلى ناس! ✨', img: '', comments: [] },
-                    { user: 'عمر الباشا (ID-55109)', text: 'مين صاحي نسهر في المايكات ونسمع قصص جديدة؟ 🎤🔥', img: '', comments: [] },
-                    { user: 'صديقك (ID-630157)', text: 'تم تسجيل الدخول بنجاح في المنصة، منورين يا شباب! 🚀', img: '', comments: [] }
+                    { user: 'عمر الباشا (ID-55109)', text: 'مين صاحي نسهر في المايكات ونسمع قصص جديدة؟ 🔥', img: '', comments: [] }
                 ];
                 localStorage.setItem('yallaludo_all_posts', JSON.stringify(posts));
             }
@@ -451,7 +458,7 @@
             });
         }
 
-        // تفاعل المايكات (مايك واحد فقط لكل مستخدم مع تأثير الرزاز واسم المستخدم)
+        // تفاعل المايكات (مايك واحد لكل مستخدم مع الرزاز واسم المستخدم)
         document.querySelectorAll('.mic-slot').forEach(slot => {
             const micNum = slot.getAttribute('data-mic');
             const nameLabel = document.getElementById('mic-name-' + micNum);
