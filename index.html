@@ -168,7 +168,7 @@
     <!-- عنصر صوتي عالمي لسماع أصوات المتحدثين الآخرين عبر الشبكة -->
     <audio id="remote-audio" autoplay></audio>
 
-    <!-- برمجة النظام بالكامل مع الاتصال الصوتي الحي العالمي (PeerJS) -->
+    <!-- برمجة النظام بالكامل مع قصر المستخدم على مايك واحد فقط -->
     <script>
         let localStream = null;
         let peer = null;
@@ -287,11 +287,9 @@
                 updateAvatarUI(savedAvatar);
             }
 
-            // تهيئة الاتصال الصوتي العالمي عبر الإنترنت
             initGlobalVoiceChat(storedId);
         }
 
-        // تهيئة الاتصال الصوتي الحي العالمي بين المستخدمين عبر PeerJS Cloud
         function initGlobalVoiceChat(userId) {
             try {
                 const cleanId = 'yallaludo_' + userId.toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -389,7 +387,7 @@
             });
         }
 
-        // تفاعل المايكات العالمي الحقيقي
+        // تفاعل المايكات (السماح للمستخدم بالصعود على مايك واحد فقط في نفس الوقت)
         document.querySelectorAll('.mic-slot').forEach(slot => {
             const micNum = slot.getAttribute('data-mic');
             const nameLabel = document.getElementById('mic-name-' + micNum);
@@ -401,7 +399,7 @@
                 }
 
                 if (slot.classList.contains('green')) {
-                    // النزول من المايك وتحويله للأحمر وإيقاف بث الصوت
+                    // النزول من المايك وتحويله للأحمر
                     slot.classList.remove('green');
                     slot.classList.add('red');
                     slot.querySelector('.mic-text').innerText = 'مايك ' + micNum;
@@ -411,15 +409,26 @@
                         localStream = null;
                     }
                 } else {
-                    // الصعود إلى المايك وطلب إذن الميكروفون للتحدث مع العالم
+                    // التحقق مما إذا كان المستخدم على مايك آخر، وإنزاله منه أولاً
+                    const currentName = localStorage.getItem('yallaludo_username') || 'مستخدم';
+                    document.querySelectorAll('.mic-slot').forEach(otherSlot => {
+                        if (otherSlot.classList.contains('green')) {
+                            otherSlot.classList.remove('green');
+                            otherSlot.classList.add('red');
+                            const otherNum = otherSlot.getAttribute('data-mic');
+                            otherSlot.querySelector('.mic-text').innerText = 'مايك ' + otherNum;
+                            document.getElementById('mic-name-' + otherNum).innerText = 'فارغ';
+                        }
+                    });
+
+                    // الصعود إلى المايك الجديد وتحويله للأخضر مع تأثير الرزاز
                     try {
                         localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
                         slot.classList.remove('red');
                         slot.classList.add('green');
                         slot.querySelector('.mic-text').innerText = '🎙️';
-                        const currentName = localStorage.getItem('yallaludo_username') || 'مستخدم';
                         nameLabel.innerText = currentName;
-                        alert('تم الصعود إلى المايك وبدء البث الصوتي المباشر للجميع!');
+                        alert('تم الصعود إلى المايك بنجاح وبدء التحدث الحي!');
                     } catch (err) {
                         alert('تعذر الوصول إلى الميكروفون. يرجى السماح للمتصفح بالوصول للمايك.');
                     }
