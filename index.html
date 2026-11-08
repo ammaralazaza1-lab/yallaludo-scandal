@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>فصائح يلا ليدو</title>
-    <!-- مكتبة PeerJS للاتصال الصوتي الحي والمباشر -->
+    <!-- مكتبة PeerJS للاتصال الصوتي المباشر -->
     <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
     <style>
         body { font-family: Tahoma, sans-serif; background: #12101f; color: #ffffff; margin: 0; padding: 10px; }
@@ -137,10 +137,10 @@
 
     </div>
 
-    <!-- عنصر صوتي مخفي لسماع أصوات المتحدثين الآخرين عبر الشبكة -->
+    <!-- عنصر صوتي مخفي لسماع أصوات المتحدثين -->
     <audio id="remote-audio" autoplay></audio>
 
-    <!-- برمجة النظام بالكامل -->
+    <!-- برمجة النظام بالكامل مع إصلاح تفعيل المايك -->
     <script>
         let localStream = null;
         let peer = null;
@@ -262,24 +262,19 @@
 
         function initVoiceChat(userId) {
             try {
-                peer = new Peer(userId.toLowerCase());
-                peer.on('call', (call) => {
-                    navigator.mediaDevices.getUserMedia({ audio: true, video: false }).then((stream) => {
-                        localStream = stream;
-                        call.answer(stream);
-                        call.on('stream', (remoteStream) => {
-                            const remoteAudio = document.getElementById('remote-audio');
-                            remoteAudio.srcObject = remoteStream;
-                            remoteAudio.play();
-                        });
-                    }).catch(err => console.log('Mic access denied', err));
+                if (!window.Peer) return;
+                peer = new Peer(userId.toLowerCase().replace(/[^a-z0-9]/g, ''), {
+                    debug: 2
+                });
+                peer.on('error', (err) => {
+                    console.log('PeerJS error:', err);
                 });
             } catch (e) {
                 console.log('Peer init error', e);
             }
         }
 
-        // تفاعل المايكات الصوتية الحية (الصعود والنزول والتحدث الفعلي)
+        // تفاعل المايكات الصوتية وحل مشكلة الصلاحيات والتفعيل المباشر
         document.querySelectorAll('.mic-slot').forEach(slot => {
             slot.addEventListener('click', async () => {
                 if (slot.classList.contains('locked')) {
@@ -295,13 +290,14 @@
                     }
                 } else {
                     try {
+                        // طلب استخدام الميكروفون من المتصفح بشكل آمن ومباشر
                         localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
                         slot.classList.add('active');
                         const currentName = localStorage.getItem('yallaludo_username') || 'مستخدم';
                         slot.querySelector('.mic-text').innerText = currentName;
-                        alert('تم الصعود إلى المايك وبدء التحدث الصوتي الحي!');
+                        alert('تم تفعيل المايك بنجاح وبدء البث الصوتي!');
                     } catch (err) {
-                        alert('عذراً، يجب السماح باستخدام الميكروفون من متصفحك للتحدث.');
+                        alert('تعذر الوصول إلى الميكروفون. يجدر التأكد من الضغط على "سماح" والسماح للمتصفح بالوصول للمايك.');
                     }
                 }
             });
