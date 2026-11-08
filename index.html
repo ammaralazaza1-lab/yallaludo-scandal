@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>فصائح يلا ليدو</title>
+    <!-- مكتبة PeerJS للاتصال الصوتي الحي والمباشر -->
+    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
     <style>
         body { font-family: Tahoma, sans-serif; background: #12101f; color: #ffffff; margin: 0; padding: 10px; }
         .card { background: #1a172c; padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #2a254a; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
@@ -20,13 +22,14 @@
         /* تصميم الغرفة والمايكات */
         .room-container { background: #1a172c; border-radius: 12px; padding: 15px; margin-top: 15px; border: 1px solid #eab308; scroll-margin-top: 15px; }
         .mics-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; margin-top: 15px; }
-        .mic-slot { width: 75px; height: 75px; border-radius: 50%; background: #ef4444; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; cursor: pointer; font-size: 12px; font-weight: bold; border: 2px solid #b91c1c; }
+        .mic-slot { width: 75px; height: 75px; border-radius: 50%; background: #ef4444; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; cursor: pointer; font-size: 12px; font-weight: bold; border: 2px solid #b91c1c; text-align: center; overflow: hidden; }
         .mic-slot.active { background: #22c55e; border-color: #15803d; }
         .mic-slot.locked { background: #64748b; border-color: #475569; }
-        .mic-badge { position: absolute; top: -5px; right: -5px; background: #eab308; color: #000; border-radius: 50%; width: 22px; height: 22px; font-size: 11px; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+        .mic-badge { position: absolute; top: -5px; right: -5px; background: #eab308; color: #000; border-radius: 50%; width: 22px; height: 22px; font-size: 11px; display: flex; align-items: center; justify-content: center; font-weight: bold; z-index: 2; }
         
         .header-flex { display: flex; align-items: center; justify-content: space-between; }
-        .avatar-circle { width: 60px; height: 60px; border-radius: 50%; background: #332d5e; display: flex; align-items: center; justify-content: center; border: 2px solid #a855f7; }
+        .avatar-circle { width: 65px; height: 65px; border-radius: 50%; background: #332d5e; display: flex; align-items: center; justify-content: center; border: 2px solid #a855f7; overflow: hidden; }
+        .avatar-circle img { width: 100%; height: 100%; object-fit: cover; }
         
         .post-box { background: #221e3d; padding: 12px; margin-top: 10px; border-radius: 8px; border: 1px solid #332d5e; }
         .post-img { max-width: 100%; border-radius: 8px; margin-top: 8px; max-height: 250px; object-fit: cover; display: block; }
@@ -61,18 +64,19 @@
         
         <!-- شريط الإشعار العلوي للغرفة -->
         <div class="room-notification-bar" id="room-alert-banner">
-            🔔 هذه الغرفة بها <span id="alert-user-count">1</span> شخص متواجد - انقر هنا للانضمام إلى غرفة المايكات!
+            🔔 هذه الغرفة بها <span id="alert-user-count">1</span> شخص متواجد - انقر هنا للانضمام إلى غرفة المايكات الصوتية!
         </div>
 
-        <!-- البروفايل والمعلومات الشخصية -->
+        <!-- البروفايل والمعلومات الشخصية وتغيير الصورة -->
         <div class="card header-flex">
             <div>
                 <h3 id="profile-name" style="margin: 0; color: #fff;">اسم المستخدم</h3>
                 <span id="profile-id" style="color: #a855f7; font-size: 14px;">(ID-216733)</span>
                 <br><br>
-                <button style="width: auto; padding: 6px 15px; font-size: 12px;" id="change-avatar-btn">تغيير الصورة</button>
+                <input type="file" id="avatar-file-input" accept="image/*" style="display: none;">
+                <button style="width: auto; padding: 6px 15px; font-size: 12px;" id="change-avatar-btn">تغيير الصورة الشخصية</button>
             </div>
-            <div class="avatar-circle">
+            <div class="avatar-circle" id="profile-avatar-container">
                 <span style="font-size: 24px;">👤</span>
             </div>
         </div>
@@ -84,10 +88,10 @@
             <button id="join-room-btn">انضمام</button>
         </div>
 
-        <!-- غرفة البث الصوتي (5 مايكات تفاعلية) -->
+        <!-- غرفة البث الصوتي المباشر (5 مايكات حية) -->
         <div class="room-container" id="room-section-target">
-            <h4 style="text-align: center; margin: 0 0 5px 0;">🎤 الغرفة: <span id="current-room-id">ROOM-999</span> (5 مايكات)</h4>
-            <p style="text-align: center; font-size: 12px; color: #94a3b8;">اضغط على المايك للصعود/النزول (اضغطة مطولة للقفل والفتح للمالك)</p>
+            <h4 style="text-align: center; margin: 0 0 5px 0;">🎤 غرفة البث الصوتي المباشر (5 مايكات)</h4>
+            <p style="text-align: center; font-size: 12px; color: #94a3b8;">اضغط على المايك للتحدث الصوتي الحي (ضغطة مطولة للقفل والفتح للمالك)</p>
             
             <div class="mics-grid" id="mics-container">
                 <div class="mic-slot" data-mic="1"><span class="mic-badge">1</span><span class="mic-text">مايك 1</span></div>
@@ -133,14 +137,44 @@
 
     </div>
 
+    <!-- عنصر صوتي مخفي لسماع أصوات المتحدثين الآخرين عبر الشبكة -->
+    <audio id="remote-audio" autoplay></audio>
+
     <!-- برمجة النظام بالكامل -->
     <script>
-        // التوجيه التلقائي للغرفة والمايكات عند النقر على إشعار الشريط العلوي
+        let localStream = null;
+        let peer = null;
+
+        // التوجيه التلقائي للغرفة والمايكات
         document.getElementById('room-alert-banner').addEventListener('click', () => {
             document.getElementById('room-section-target').scrollIntoView({ behavior: 'smooth' });
         });
 
-        // نظام صوت طوارئ الإسعاف عند النشر
+        // تغيير الصورة الشخصية للبروفايل
+        document.getElementById('change-avatar-btn').addEventListener('click', () => {
+            document.getElementById('avatar-file-input').click();
+        });
+
+        document.getElementById('avatar-file-input').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const base64Img = event.target.result;
+                    localStorage.setItem('yallaludo_avatar', base64Img);
+                    updateAvatarUI(base64Img);
+                    alert('تم تحديث الصورة الشخصية بنجاح!');
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+
+        function updateAvatarUI(imgSrc) {
+            const container = document.getElementById('profile-avatar-container');
+            container.innerHTML = `<img src="${imgSrc}" alt="صورة البروفايل">`;
+        }
+
+        // صوت طوارئ الإسعاف عند النشر
         function playAmbulanceSiren() {
             try {
                 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -217,22 +251,58 @@
             document.getElementById('profile-name').innerText = username;
             const storedId = localStorage.getItem('yallaludo_id') || 'ID-216733';
             document.getElementById('profile-id').innerText = '(' + storedId + ')';
+            
+            const savedAvatar = localStorage.getItem('yallaludo_avatar');
+            if (savedAvatar) {
+                updateAvatarUI(savedAvatar);
+            }
+
+            initVoiceChat(storedId);
         }
 
-        // تفاعل المايكات (الصعود/النزول للجميع، والضغط المطولة للقفل/الفتح للمالك)
+        function initVoiceChat(userId) {
+            try {
+                peer = new Peer(userId.toLowerCase());
+                peer.on('call', (call) => {
+                    navigator.mediaDevices.getUserMedia({ audio: true, video: false }).then((stream) => {
+                        localStream = stream;
+                        call.answer(stream);
+                        call.on('stream', (remoteStream) => {
+                            const remoteAudio = document.getElementById('remote-audio');
+                            remoteAudio.srcObject = remoteStream;
+                            remoteAudio.play();
+                        });
+                    }).catch(err => console.log('Mic access denied', err));
+                });
+            } catch (e) {
+                console.log('Peer init error', e);
+            }
+        }
+
+        // تفاعل المايكات الصوتية الحية (الصعود والنزول والتحدث الفعلي)
         document.querySelectorAll('.mic-slot').forEach(slot => {
-            slot.addEventListener('click', () => {
+            slot.addEventListener('click', async () => {
                 if (slot.classList.contains('locked')) {
                     alert('هذا المايك مقفل من قِبل المالك!');
                     return;
                 }
+
                 if (slot.classList.contains('active')) {
                     slot.classList.remove('active');
                     slot.querySelector('.mic-text').innerText = 'مايك ' + slot.getAttribute('data-mic');
+                    if (localStream) {
+                        localStream.getTracks().forEach(track => track.stop());
+                    }
                 } else {
-                    slot.classList.add('active');
-                    const currentName = localStorage.getItem('yallaludo_username') || 'مستخدم';
-                    slot.querySelector('.mic-text').innerText = currentName;
+                    try {
+                        localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+                        slot.classList.add('active');
+                        const currentName = localStorage.getItem('yallaludo_username') || 'مستخدم';
+                        slot.querySelector('.mic-text').innerText = currentName;
+                        alert('تم الصعود إلى المايك وبدء التحدث الصوتي الحي!');
+                    } catch (err) {
+                        alert('عذراً، يجب السماح باستخدام الميكروفون من متصفحك للتحدث.');
+                    }
                 }
             });
 
@@ -328,7 +398,7 @@
             if (oldP === savedPass && newP) {
                 localStorage.setItem('yallaludo_password', newP);
                 alert('تم تحديث كلمة المرور بنجاح!');
-                document.getElementById('old-pass').value = ' ';
+                document.getElementById('old-pass').value = '';
                 document.getElementById('new-pass').value = '';
             } else {
                 alert('كلمة المرور القديمة غير صحيحة أو الحقل فارغ.');
