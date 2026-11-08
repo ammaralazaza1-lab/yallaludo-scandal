@@ -17,13 +17,26 @@
         .room-notification-bar { background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: #fff; padding: 10px 15px; border-radius: 10px; margin-bottom: 15px; text-align: center; cursor: pointer; font-weight: bold; box-shadow: 0 4px 10px rgba(59, 130, 246, 0.4); animation: pulse-bar 2s infinite; }
         @keyframes pulse-bar { 0% { transform: scale(1); } 50% { transform: scale(1.02); } 100% { transform: scale(1); } }
 
-        /* تصميم الغرفة والمايكات */
+        /* تصميم الغرفة والمايكات وتأثير الرزاز الأخضر عند التحدث */
         .room-container { background: #1a172c; border-radius: 12px; padding: 15px; margin-top: 15px; border: 1px solid #eab308; scroll-margin-top: 15px; }
-        .mics-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; margin-top: 15px; }
-        .mic-slot { width: 75px; height: 75px; border-radius: 50%; background: #ef4444; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; cursor: pointer; font-size: 12px; font-weight: bold; border: 2px solid #b91c1c; text-align: center; overflow: hidden; }
-        .mic-slot.active { background: #22c55e; border-color: #15803d; }
+        .mics-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 25px; margin-top: 15px; }
+        
+        .mic-wrapper { display: flex; flex-direction: column; align-items: center; width: 85px; }
+        
+        .mic-slot { width: 75px; height: 75px; border-radius: 50%; background: #ef4444; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; cursor: pointer; font-size: 13px; font-weight: bold; border: 2px solid #b91c1c; text-align: center; overflow: hidden; transition: 0.3s; }
+        .mic-slot.red { background: #ef4444; border-color: #b91c1c; box-shadow: 0 0 10px rgba(239, 68, 68, 0.4); }
+        .mic-slot.green { background: #22c55e; border-color: #15803d; animation: mic-spray 1.5s infinite; }
         .mic-slot.locked { background: #64748b; border-color: #475569; }
+
+        /* تأثير الرزاز (موجات الإشعاع الأخضر حول المايك النشط) */
+        @keyframes mic-spray {
+            0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+            70% { box-shadow: 0 0 0 15px rgba(34, 197, 94, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+        }
+
         .mic-badge { position: absolute; top: -5px; right: -5px; background: #eab308; color: #000; border-radius: 50%; width: 22px; height: 22px; font-size: 11px; display: flex; align-items: center; justify-content: center; font-weight: bold; z-index: 2; }
+        .mic-username { margin-top: 6px; font-size: 12px; color: #38bdf8; text-align: center; font-weight: bold; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         
         .header-flex { display: flex; align-items: center; justify-content: space-between; }
         .avatar-circle { width: 65px; height: 65px; border-radius: 50%; background: #332d5e; display: flex; align-items: center; justify-content: center; border: 2px solid #a855f7; overflow: hidden; }
@@ -86,17 +99,32 @@
             <button id="join-room-btn">انضمام</button>
         </div>
 
-        <!-- غرفة البث الصوتي (5 مايكات تفاعلية مستقرة بدون مشاكل أذونات) -->
+        <!-- غرفة البث الصوتي (5 مايكات بألوان وأسماء ورزاز) -->
         <div class="room-container" id="room-section-target">
             <h4 style="text-align: center; margin: 0 0 5px 0;">🎤 غرفة البث الصوتي (5 مايكات)</h4>
             <p style="text-align: center; font-size: 12px; color: #94a3b8;">اضغط على المايك للصعود والتحدث (ضغطة مطولة للقفل والفتح للمالك)</p>
             
             <div class="mics-grid" id="mics-container">
-                <div class="mic-slot" data-mic="1"><span class="mic-badge">1</span><span class="mic-text">مايك 1</span></div>
-                <div class="mic-slot" data-mic="2"><span class="mic-badge">2</span><span class="mic-text">مايك 2</span></div>
-                <div class="mic-slot" data-mic="3"><span class="mic-badge">3</span><span class="mic-text">مايك 3</span></div>
-                <div class="mic-slot" data-mic="4"><span class="mic-badge">4</span><span class="mic-text">مايك 4</span></div>
-                <div class="mic-slot" data-mic="5"><span class="mic-badge">5</span><span class="mic-text">مايك 5</span></div>
+                <div class="mic-wrapper">
+                    <div class="mic-slot red" data-mic="1"><span class="mic-badge">1</span><span class="mic-text">مايك 1</span></div>
+                    <div class="mic-username" id="mic-name-1">فارغ</div>
+                </div>
+                <div class="mic-wrapper">
+                    <div class="mic-slot red" data-mic="2"><span class="mic-badge">2</span><span class="mic-text">مايك 2</span></div>
+                    <div class="mic-username" id="mic-name-2">فارغ</div>
+                </div>
+                <div class="mic-wrapper">
+                    <div class="mic-slot red" data-mic="3"><span class="mic-badge">3</span><span class="mic-text">مايك 3</span></div>
+                    <div class="mic-username" id="mic-name-3">فارغ</div>
+                </div>
+                <div class="mic-wrapper">
+                    <div class="mic-slot red" data-mic="4"><span class="mic-badge">4</span><span class="mic-text">مايك 4</span></div>
+                    <div class="mic-username" id="mic-name-4">فارغ</div>
+                </div>
+                <div class="mic-wrapper">
+                    <div class="mic-slot red" data-mic="5"><span class="mic-badge">5</span><span class="mic-text">مايك 5</span></div>
+                    <div class="mic-username" id="mic-name-5">فارغ</div>
+                </div>
             </div>
         </div>
 
@@ -116,7 +144,7 @@
             <button id="publish-btn">نشر</button>
         </div>
 
-        <!-- المنشورات والتعليقات (تضم منشوراتك ومنشورات المستخدمين الآخرين وتتحدث تلقائياً) -->
+        <!-- المنشورات والتعليقات -->
         <div class="card">
             <h4 style="color: #38bdf8;">💬 المنشورات والتعليقات للجميع</h4>
             <div id="posts-container" style="color: #94a3b8; font-size: 13px; text-align: center; padding: 10px;">
@@ -217,9 +245,7 @@
             localStorage.setItem('yallaludo_id', randomId);
             localStorage.setItem('yallaludo_logged_user', user);
             
-            // إضافة مستخدم تجريبي افتراضي للمنصة لضمان ظهور منشورات الآخرين
             addSampleOtherUserPosts();
-
             alert('تم إنشاء الحساب بنجاح! الـ ID الخاص بك هو: ' + randomId);
             showApp(user);
         });
@@ -254,7 +280,6 @@
             }
         }
 
-        // إضافة منشورات تجريبية للمستخدمين الآخرين إذا لم تكن موجودة
         function addSampleOtherUserPosts() {
             let posts = JSON.parse(localStorage.getItem('yallaludo_all_posts') || '[]');
             if (posts.length === 0) {
@@ -266,7 +291,6 @@
             }
         }
 
-        // تحميل وعرض المنشورات (منشوراتك ومنشورات الآخرين)
         function loadPosts() {
             const container = document.getElementById('posts-container');
             let posts = JSON.parse(localStorage.getItem('yallaludo_all_posts') || '[]');
@@ -308,7 +332,6 @@
                 container.appendChild(postDiv);
             });
 
-            // ربط أحداث أزرار التعليقات
             document.querySelectorAll('.comment-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     const idx = e.target.getAttribute('data-index');
@@ -324,22 +347,31 @@
             });
         }
 
-        // تفاعل المايكات الذكي المستقر (بدون أخطاء أذونات متصفح)
+        // تفاعل المايكات (أحمر وفارغ عند الخروج، أخضر وعليه رزاز واسم المستخدم عند الصعود)
         document.querySelectorAll('.mic-slot').forEach(slot => {
+            const micNum = slot.getAttribute('data-mic');
+            const nameLabel = document.getElementById('mic-name-' + micNum);
+
             slot.addEventListener('click', () => {
                 if (slot.classList.contains('locked')) {
                     alert('هذا المايك مقفل من قِبل المالك!');
                     return;
                 }
 
-                if (slot.classList.contains('active')) {
-                    slot.classList.remove('active');
-                    slot.querySelector('.mic-text').innerText = 'مايك ' + slot.getAttribute('data-mic');
+                if (slot.classList.contains('green')) {
+                    // النزول من المايك وتحويله للأحمر
+                    slot.classList.remove('green');
+                    slot.classList.add('red');
+                    slot.querySelector('.mic-text').innerText = 'مايك ' + micNum;
+                    nameLabel.innerText = 'فارغ';
                 } else {
-                    slot.classList.add('active');
+                    // الصعود إلى المايك وتحويله للأخضر مع تفعيل الرزاز وعرض الاسم تحته
+                    slot.classList.remove('red');
+                    slot.classList.add('green');
+                    slot.querySelector('.mic-text').innerText = '🎙️';
                     const currentName = localStorage.getItem('yallaludo_username') || 'مستخدم';
-                    slot.querySelector('.mic-text').innerText = currentName;
-                    alert('تم الصعود إلى المايك بنجاح!');
+                    nameLabel.innerText = currentName;
+                    alert('تم الصعود إلى المايك وبدء التحدث الحي!');
                 }
             });
 
@@ -347,18 +379,21 @@
                 e.preventDefault();
                 if (slot.classList.contains('locked')) {
                     slot.classList.remove('locked');
-                    slot.querySelector('.mic-text').innerText = 'مايك ' + slot.getAttribute('data-mic');
-                    alert('تم فتح المايك ' + slot.getAttribute('data-mic'));
+                    slot.classList.add('red');
+                    slot.querySelector('.mic-text').innerText = 'مايك ' + micNum;
+                    nameLabel.innerText = 'فارغ';
+                    alert('تم فتح المايك ' + micNum);
                 } else {
-                    slot.classList.remove('active');
+                    slot.classList.remove('green', 'red');
                     slot.classList.add('locked');
-                    slot.querySelector('.mic-text').innerText = 'مقفل 🔒';
-                    alert('تم قفل المايك ' + slot.getAttribute('data-mic'));
+                    slot.querySelector('.mic-text').innerText = '🔒';
+                    nameLabel.innerText = 'مقفل';
+                    alert('تم قفل المايك ' + micNum);
                 }
             });
         });
 
-        // زر النشر لتحديث ونشر منشورك ومنشورات الآخرين فوراً وصوت الإسعاف
+        // زر النشر وصوت الإسعاف وتحديث المنشورات للجميع
         document.getElementById('publish-btn').addEventListener('click', () => {
             const text = document.getElementById('post-text').value.trim();
             const fileInput = document.getElementById('post-file');
@@ -391,10 +426,10 @@
             posts.unshift(newPost);
             localStorage.setItem('yallaludo_all_posts', JSON.stringify(posts));
 
-            document.getElementById('post-text').value = '';
+            document.getElementById('post-text').value = ' ';
             document.getElementById('post-file').value = '';
             loadPosts();
-            alert('تم النشر بنجاح وتحديث منشورات الغرفة وإصدار إنذار الطوارئ!');
+            alert('تم النشر بنجاح وتحديث المنشورات وإصدار إنذار الطوارئ!');
         }
 
         document.getElementById('update-pass-btn').addEventListener('click', () => {
