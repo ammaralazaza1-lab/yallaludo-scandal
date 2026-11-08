@@ -140,7 +140,7 @@
     <!-- عنصر صوتي مخفي لسماع أصوات المتحدثين -->
     <audio id="remote-audio" autoplay></audio>
 
-    <!-- برمجة النظام بالكامل مع إصلاح تفعيل المايك -->
+    <!-- برمجة النظام بالكامل مع معالجة إذن الميكروفون وتحسين التوافق -->
     <script>
         let localStream = null;
         let peer = null;
@@ -263,18 +263,39 @@
         function initVoiceChat(userId) {
             try {
                 if (!window.Peer) return;
-                peer = new Peer(userId.toLowerCase().replace(/[^a-z0-9]/g, ''), {
-                    debug: 2
+                // إنشاء كائن الاتصال الآمن مع معالجة الأخطاء
+                peer = new Peer({
+                    host: '0.peerjs.com',
+                    port: 443,
+                    secure: true,
+                    debug: 1
                 });
-                peer.on('error', (err) => {
-                    console.log('PeerJS error:', err);
+
+                peer.on('open', (id) => {
+                    console.log('Peer connected with ID:', id);
+                });
+
+                peer.on('call', (call) => {
+                    if (localStream) {
+                        call.answer(localStream);
+                    } else {
+                        navigator.mediaDevices.getUserMedia({ audio: true, video: false }).then((stream) => {
+                            localStream = stream;
+                            call.answer(stream);
+                        }).catch(err => console.log('Mic error:', err));
+                    }
+                    call.on('stream', (remoteStream) => {
+                        const remoteAudio = document.getElementById('remote-audio');
+                        remoteAudio.srcObject = remoteStream;
+                        remoteAudio.play();
+                    });
                 });
             } catch (e) {
                 console.log('Peer init error', e);
             }
         }
 
-        // تفاعل المايكات الصوتية وحل مشكلة الصلاحيات والتفعيل المباشر
+        // تفاعل المايكات وتفعيل إذن الميكروفون المباشر للمتصفح
         document.querySelectorAll('.mic-slot').forEach(slot => {
             slot.addEventListener('click', async () => {
                 if (slot.classList.contains('locked')) {
@@ -287,17 +308,28 @@
                     slot.querySelector('.mic-text').innerText = 'مايك ' + slot.getAttribute('data-mic');
                     if (localStream) {
                         localStream.getTracks().forEach(track => track.stop());
+                        localStream = null;
                     }
                 } else {
                     try {
-                        // طلب استخدام الميكروفون من المتصفح بشكل آمن ومباشر
-                        localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+                        // طلب صلاحية الميكروفون مع التعامل مع حماية المتصفح
+                        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                            alert('متصفحك لا يدعم الوصول المباشر للميكروفون.');
+                            return;
+                        }
+
+                        localStream = await navigator.mediaDevices.getUserMedia({ 
+                            audio: { echoCancellation: true, noiseSuppression: true }, 
+                            video: false 
+                        });
+
                         slot.classList.add('active');
                         const currentName = localStorage.getItem('yallaludo_username') || 'مستخدم';
                         slot.querySelector('.mic-text').innerText = currentName;
-                        alert('تم تفعيل المايك بنجاح وبدء البث الصوتي!');
+                        alert('تم تفعيل المايك بنجاح وبدء البث الصوتي المباشر!');
                     } catch (err) {
-                        alert('تعذر الوصول إلى الميكروفون. يجدر التأكد من الضغط على "سماح" والسماح للمتصفح بالوصول للمايك.');
+                        console.error('Mic access error:', err);
+                        alert('تعذر الوصول إلى الميكروفون. يرجى التأكد من الضغط على "سماح" في إذن المتصفح، أو التحقق من إعدادات الموقع.');
                     }
                 }
             });
