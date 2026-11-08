@@ -94,16 +94,17 @@
             </div>
         </div>
 
-        <!-- البحث عن غرفة -->
+        <!-- البحث عن غرفة أو مستخدم برقم الـ ID -->
         <div class="card">
-            <h4 style="color: #38bdf8; text-align: center;">🔍 البحث عن غرفة برقم الـ ID</h4>
-            <input type="text" id="room-search-input" placeholder="أدخل ID الغرفة (مثال: 555122)">
-            <button id="join-room-btn">انضمام</button>
+            <h4 style="color: #38bdf8; text-align: center;">🔍 البحث عن مستخدم أو غرفة برقم الـ ID</h4>
+            <input type="text" id="room-search-input" placeholder="أدخل ID المستخدم أو الغرفة (مثال: ID-630157 أو 630157)">
+            <button id="join-room-btn">بحث ودخول الروم</button>
+            <div id="search-result-box" style="margin-top: 10px; font-size: 14px; text-align: center;"></div>
         </div>
 
         <!-- غرفة البث الصوتي (5 مايكات حية عالمية) -->
         <div class="room-container" id="room-section-target">
-            <h4 style="text-align: center; margin: 0 0 5px 0;">🎤 غرفة البث الصوتي (5 مايكات)</h4>
+            <h4 style="text-align: center; margin: 0 0 5px 0;" id="room-title-heading">🎤 غرفة البث الصوتي (5 مايكات)</h4>
             <p style="text-align: center; font-size: 12px; color: #94a3b8;">اضغط على المايك للصعود والتحدث الحي مع الجميع (ضغطة مطولة للقفل والفتح)</p>
             
             <div class="mics-grid" id="mics-container">
@@ -132,7 +133,7 @@
 
         <!-- المتواجدون في الغرفة -->
         <div class="card">
-            <h4 style="color: #60a5fa;">👥 المتواجدون في الغرفة (<span id="online-count">1</span>)</h4>
+            <h4 style="color: #60a5fa;">👥 المتواجدون في المنصة (<span id="online-count">1</span>)</h4>
             <div id="online-users-list" style="background: #221e3d; padding: 10px; border-radius: 8px; font-size: 14px;">
                 Allgghh (ID-216733)
             </div>
@@ -168,7 +169,7 @@
     <!-- عنصر صوتي عالمي لسماع أصوات المتحدثين الآخرين عبر الشبكة -->
     <audio id="remote-audio" autoplay></audio>
 
-    <!-- برمجة النظام بالكامل مع قصر المستخدم على مايك واحد فقط -->
+    <!-- برمجة النظام بالكامل مع حفظ وزيارة الحسابات والبحث الشامل برقم الـ ID -->
     <script>
         let localStream = null;
         let peer = null;
@@ -253,6 +254,9 @@
             localStorage.setItem('yallaludo_id', randomId);
             localStorage.setItem('yallaludo_logged_user', user);
             
+            // تسجيل الحساب في قائمة المستخدمين العامة للبحث
+            registerUserGlobally(user, randomId);
+
             addSampleOtherUserPosts();
             alert('تم إنشاء الحساب بنجاح! الـ ID الخاص بك هو: ' + randomId);
             showApp(user);
@@ -268,12 +272,24 @@
 
             if ((inputUser === savedUser || inputUser === savedId) && inputPass === savedPass) {
                 localStorage.setItem('yallaludo_logged_user', savedUser);
+                registerUserGlobally(savedUser, savedId);
                 alert('تم تسجيل الدخول بنجاح!');
                 showApp(savedUser);
             } else {
                 alert('خطأ في البيانات المدخلة، تأكد من الـ ID وكلمة المرور.');
             }
         });
+
+        function registerUserGlobally(username, userid) {
+            let users = JSON.parse(localStorage.getItem('yallaludo_global_users') || '[]');
+            const existing = users.find(u => u.id === userid);
+            if (!existing) {
+                users.push({ name: username, id: userid });
+            } else {
+                existing.name = username;
+            }
+            localStorage.setItem('yallaludo_global_users', JSON.stringify(users));
+        }
 
         function showApp(username) {
             document.getElementById('auth-wrapper').classList.add('hidden');
@@ -282,6 +298,8 @@
             const storedId = localStorage.getItem('yallaludo_id') || 'ID-216733';
             document.getElementById('profile-id').innerText = '(' + storedId + ')';
             
+            registerUserGlobally(username, storedId);
+
             const savedAvatar = localStorage.getItem('yallaludo_avatar');
             if (savedAvatar) {
                 updateAvatarUI(savedAvatar);
@@ -289,6 +307,51 @@
 
             initGlobalVoiceChat(storedId);
         }
+
+        // خاصية البحث الشامل برقم الـ ID وعرض اسم الحساب والدخول لرومه
+        document.getElementById('join-room-btn').addEventListener('click', () => {
+            let searchVal = document.getElementById('room-search-input').value.trim();
+            if (!searchVal) {
+                alert('الرجاء إدخال رقم الـ ID للبحث');
+                return;
+            }
+
+            if (!searchVal.startsWith('ID-') && !searchVal.startsWith('id-')) {
+                searchVal = 'ID-' + searchVal;
+            }
+
+            let users = JSON.parse(localStorage.getItem('yallaludo_global_users') || '[]');
+            // إضافة مستخدمين تجريبيين للتأكد من سهولة التجربة
+            if (users.length === 0) {
+                users = [
+                    { name: 'سارة الملكة', id: 'ID-88412' },
+                    { name: 'عمر الباشا', id: 'ID-55109' },
+                    { name: 'صديقك', id: 'ID-630157' }
+                ];
+                localStorage.setItem('yallaludo_global_users', JSON.stringify(users));
+            }
+
+            const foundUser = users.find(u => u.id.toLowerCase() === searchVal.toLowerCase());
+            const resultBox = document.getElementById('search-result-box');
+
+            if (foundUser) {
+                resultBox.innerHTML = `
+                    <div style="background: #221e3d; padding: 10px; border-radius: 8px; border: 1px solid #22c55e; margin-top: 5px;">
+                        <span style="color: #22c55e; font-weight: bold;">✅ تم العثور على الحساب:</span><br>
+                        <strong style="color: #fff; font-size: 16px;">${foundUser.name}</strong> <span style="color: #a855f7;">(${foundUser.id})</span><br>
+                        <button id="enter-friend-room" style="background: #22c55e; margin-top: 8px; padding: 8px;">دخول روم البث والتحدث مع ${foundUser.name}</button>
+                    </div>
+                `;
+
+                document.getElementById('enter-friend-room').addEventListener('click', () => {
+                    document.getElementById('room-title-heading').innerText = `🎤 غرفة البث الصوتي لـ ${foundUser.name} (${foundUser.id})`;
+                    document.getElementById('room-section-target').scrollIntoView({ behavior: 'smooth' });
+                    alert(`أنت الآن في روم ${foundUser.name}! يمكنك الصعود على المايك للتحدث.`);
+                });
+            } else {
+                resultBox.innerHTML = `<span style="color: #ef4444;">❌ لم يتم العثور على مستخدم بهذا الـ ID. تأكد من الرقم.</span>`;
+            }
+        });
 
         function initGlobalVoiceChat(userId) {
             try {
@@ -325,7 +388,8 @@
             if (posts.length === 0) {
                 posts = [
                     { user: 'سارة الملكة (ID-88412)', text: 'منزل مبارك للجميع، منورين الغرفة أحلى ناس! ✨', img: '', comments: [] },
-                    { user: 'عمر الباشا (ID-55109)', text: 'مين صاحي نسهر في المايكات ونسمع قصص جديدة؟ 🎤🔥', img: '', comments: [] }
+                    { user: 'عمر الباشا (ID-55109)', text: 'مين صاحي نسهر في المايكات ونسمع قصص جديدة؟ 🎤🔥', img: '', comments: [] },
+                    { user: 'صديقك (ID-630157)', text: 'تم تسجيل الدخول بنجاح في المنصة، منورين يا شباب! 🚀', img: '', comments: [] }
                 ];
                 localStorage.setItem('yallaludo_all_posts', JSON.stringify(posts));
             }
@@ -387,7 +451,7 @@
             });
         }
 
-        // تفاعل المايكات (السماح للمستخدم بالصعود على مايك واحد فقط في نفس الوقت)
+        // تفاعل المايكات (مايك واحد فقط لكل مستخدم مع تأثير الرزاز واسم المستخدم)
         document.querySelectorAll('.mic-slot').forEach(slot => {
             const micNum = slot.getAttribute('data-mic');
             const nameLabel = document.getElementById('mic-name-' + micNum);
@@ -399,7 +463,6 @@
                 }
 
                 if (slot.classList.contains('green')) {
-                    // النزول من المايك وتحويله للأحمر
                     slot.classList.remove('green');
                     slot.classList.add('red');
                     slot.querySelector('.mic-text').innerText = 'مايك ' + micNum;
@@ -409,7 +472,6 @@
                         localStream = null;
                     }
                 } else {
-                    // التحقق مما إذا كان المستخدم على مايك آخر، وإنزاله منه أولاً
                     const currentName = localStorage.getItem('yallaludo_username') || 'مستخدم';
                     document.querySelectorAll('.mic-slot').forEach(otherSlot => {
                         if (otherSlot.classList.contains('green')) {
@@ -421,7 +483,6 @@
                         }
                     });
 
-                    // الصعود إلى المايك الجديد وتحويله للأخضر مع تأثير الرزاز
                     try {
                         localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
                         slot.classList.remove('red');
